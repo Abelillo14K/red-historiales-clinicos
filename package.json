@@ -1,0 +1,40 @@
+{
+  "name": "centro-pediatrico-mongodb",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Módulo pediátrico fase II, MongoDB",
+  "scripts": {
+    "start": "node instituciones/pediatria/backend/server.js",
+    "dev": "node --watch instituciones/pediatria/backend/server.js",
+    "test": "npm run test:plataforma && npm run test:pediatria",
+    "test:plataforma": "node --import ./tests/soporte/alias-frontend.mjs --test tests/*.test.js",
+    "test:pediatria": "node --test instituciones/pediatria/tests/*.test.js",
+    "web:install": "npm --prefix apps/web install",
+    "web:ci": "npm --prefix apps/web ci",
+    "web:dev": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/web run build",
+    "db:indices": "node instituciones/pediatria/scripts/seed.js",
+    "db:validadores": "node instituciones/pediatria/scripts/validadores.js",
+    "db:diagnostico": "node instituciones/pediatria/scripts/respaldo/diagnostico.js",
+    "db:respaldo": "node instituciones/pediatria/scripts/respaldo/respaldar.js",
+    "db:restaurar-aislado": "node instituciones/pediatria/scripts/respaldo/restaurar-aislado.js",
+    "seed": "node instituciones/pediatria/scripts/seed.js",
+    "token:dev": "node instituciones/pediatria/scripts/dev-token.js",
+    "test:e2e": "npm run build && node instituciones/pediatria/tests/e2e/flujo-ui.e2e.js",
+    "test:e2e:vista-previa": "node tests/e2e/vista-previa.e2e.js",
+    "test:todo": "npm test && npm run test:e2e && npm run test:e2e:vista-previa"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^6.12.0",
+    "zod": "4.6.7"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "playwright-core": "1.49.1"
+  }
+}

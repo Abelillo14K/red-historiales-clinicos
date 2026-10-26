@@ -1,0 +1,70 @@
+# --- Secretos y configuración local ---------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa*
+id_ed25519*
+credentials*.json
+secrets*.json
+*.token
+.npmrc
+
+# --- Dependencias -----------------------------------------------------------
+node_modules/
+
+# --- Compilaciones y archivos generados -------------------------------------
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# --- Respaldos, volcados y bases de datos locales ---------------------------
+respaldos/
+respaldo_fase2_original/
+codigo_para_auditoria_pediatria.zip
+*.bson
+*.archive
+*.gz
+*.tgz
+*.zip
+*.7z
+*.rar
+*.bak
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+data/db/
+mongod-data/
+
+# --- Capturas generadas por las pruebas E2E ---------------------------------
+instituciones/pediatria/tests/e2e/capturas/
+tests/e2e/capturas-vista-previa/
+
+# --- Registros, temporales y cachés -----------------------------------------
+*.log
+npm-debug.log*
+logs/
+tmp/
+temp/
+*.tmp
+*.temp
+.cache/
+.eslintcache
+.npm/
+
+# --- Configuración personal del editor y del sistema -------------------------
+.vscode/
+.idea/
+.claude/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
