@@ -31,21 +31,27 @@ const MODULOS = {
   hospital_general: {
     nombre: 'Hospital General',
     pantallas: [['', 'Panel principal'], ['pacientes', 'Pacientes'], ['pacientes/nuevo', 'Registrar paciente'],
-      ['pacientes/vista-previa', 'Expediente clínico'], ['citas', 'Citas'], ['archivados', 'Historiales archivados']],
-    pestanas: ['Consultas', 'Diagnósticos', 'Tratamientos', 'Medicamentos y prescripciones']
+      ['pacientes/vista-previa', 'Expediente clínico'], ['pacientes/vista-previa/consultas/nueva', 'Nueva consulta'],
+      ['pacientes/vista-previa/archivar', 'Archivar historial clínico'], ['citas', 'Citas'],
+      ['hospitalizacion', 'Hospitalización'], ['catalogos', 'Catálogos'], ['bitacora', 'Bitácora de acceso'], ['archivados', 'Historiales archivados']],
+    pestanas: ['Datos generales', 'Consultas', 'Diagnósticos', 'Tratamientos', 'Medicamentos y prescripciones', 'Exámenes', 'Hospitalizaciones', 'Antecedentes']
   },
   clinica_odontologica: {
     nombre: 'Clínica Odontológica',
     pantallas: [['', 'Panel principal'], ['pacientes', 'Pacientes'], ['pacientes/nuevo', 'Registrar paciente'],
-      ['pacientes/vista-previa', 'Expediente clínico'], ['citas', 'Citas odontológicas'], ['archivados', 'Historiales archivados']],
-    pestanas: ['Consultas', 'Diagnósticos', 'Tratamientos', 'Prescripciones', 'Piezas dentales']
+      ['pacientes/vista-previa', 'Expediente clínico'], ['pacientes/vista-previa/consultas/nueva', 'Nueva consulta odontológica'],
+      ['pacientes/vista-previa/archivar', 'Archivar historial clínico'], ['citas', 'Citas odontológicas'],
+      ['catalogos', 'Catálogos'], ['bitacora', 'Bitácora de acceso'], ['archivados', 'Historiales archivados']],
+    pestanas: ['Datos generales', 'Consultas', 'Diagnósticos', 'Tratamientos', 'Prescripciones', 'Piezas dentales']
   },
   laboratorio_clinico: {
     nombre: 'Laboratorio Clínico',
     pantallas: [['', 'Panel principal'], ['pacientes', 'Pacientes'], ['pacientes/nuevo', 'Registrar paciente'],
-      ['pacientes/vista-previa', 'Expediente clínico'], ['solicitudes', 'Solicitudes de exámenes'], ['resultados', 'Resultados de laboratorio'],
-      ['archivados', 'Historiales archivados']],
-    pestanas: ['Solicitudes', 'Resultados', 'Historial de resultados', 'Atenciones relacionadas']
+      ['pacientes/vista-previa', 'Expediente clínico'], ['pacientes/vista-previa/archivar', 'Archivar historial clínico'],
+      ['solicitudes', 'Solicitudes de exámenes'], ['solicitudes/nueva', 'Nueva solicitud de exámenes'],
+      ['resultados', 'Resultados de laboratorio'], ['resultados/nuevo', 'Registrar resultado'], ['resultados/vista-previa', 'Detalle del resultado'],
+      ['catalogos', 'Catálogos'], ['bitacora', 'Bitácora de acceso'], ['archivados', 'Historiales archivados']],
+    pestanas: ['Datos generales', 'Solicitudes', 'Resultados', 'Historial de resultados', 'Atenciones relacionadas']
   }
 };
 
@@ -248,6 +254,65 @@ async function main() {
       });
     }
 
+    await paso('Mockup hospitalario: cinco secciones y navegación a consulta y archivo', async () => {
+      await page.goto(`${base}/vista-previa/hospital_general/pacientes`);
+      await h1('Pacientes');
+      await page.getByRole('link', { name: 'Crear un expediente nuevo' }).click();
+      await h1('Registrar paciente');
+      assert.equal(await page.locator('.form-steps li').count(), 5);
+      await page.getByRole('navigation', { name: 'Secciones del formulario' }).getByRole('link', { name: /Alergias/ }).click();
+      assert.equal(new URL(page.url()).hash, '#hospital-alergias');
+      await sinEscritura('Registro hospitalario del mockup');
+      await page.goto(`${base}/vista-previa/hospital_general/pacientes/vista-previa`);
+      await h1('Expediente clínico');
+      await page.getByRole('link', { name: 'Ver diseño de consulta' }).click();
+      await h1('Nueva consulta');
+      assert.equal(await page.locator('.section-heading').count(), 6);
+      await sinEscritura('Consulta hospitalaria del mockup');
+      await page.getByRole('link', { name: 'Volver al historial' }).click();
+      await h1('Expediente clínico');
+      await page.getByRole('link', { name: 'Ver diseño de archivado' }).click();
+      await h1('Archivar historial clínico');
+      assert.equal(await page.getByRole('radio').count(), 3);
+      await sinEscritura('Archivo hospitalario del mockup');
+    });
+
+    await paso('Diseño común: consulta dental, mapa visual y flujo de solicitudes y resultados', async () => {
+      await page.goto(`${base}/vista-previa/clinica_odontologica/pacientes/vista-previa`);
+      await h1('Expediente clínico');
+      await page.getByRole('link', { name: 'Ver diseño de consulta' }).click();
+      await h1('Nueva consulta odontológica');
+      assert.equal(await page.locator('.section-heading').count(), 5);
+      await sinEscritura('Consulta odontológica');
+      await page.getByRole('link', { name: 'Volver', exact: true }).click();
+      await page.getByRole('tab', { name: 'Piezas dentales', exact: true }).click();
+      const pieza = page.getByRole('button', { name: 'Ver posición visual 1', exact: true });
+      await pieza.click();
+      assert.equal(await pieza.getAttribute('aria-pressed'), 'true');
+      await sinEscritura('Mapa dental: selección solo visual');
+      await page.getByRole('link', { name: 'Ver diseño de archivado' }).click();
+      await h1('Archivar historial clínico');
+      await sinEscritura('Archivado odontológico');
+
+      await page.goto(`${base}/vista-previa/laboratorio_clinico/solicitudes`);
+      await h1('Solicitudes de exámenes');
+      await page.getByRole('link', { name: 'Ver diseño de solicitud' }).click();
+      await h1('Nueva solicitud de exámenes');
+      assert.equal(await page.locator('.section-heading').count(), 4);
+      await sinEscritura('Nueva solicitud de laboratorio');
+      await page.goto(`${base}/vista-previa/laboratorio_clinico/resultados`);
+      await h1('Resultados de laboratorio');
+      await page.getByRole('link', { name: 'Ver diseño de registro' }).click();
+      await h1('Registrar resultado');
+      assert.equal(await page.locator('.section-heading').count(), 3);
+      await sinEscritura('Registro de resultado');
+      await page.getByRole('link', { name: 'Volver', exact: true }).click();
+      await page.getByRole('link', { name: 'Ver diseño del informe' }).click();
+      await h1('Detalle del resultado');
+      assert.equal(await page.locator('.report-preview').count(), 1);
+      await sinEscritura('Detalle de informe');
+    });
+
     await paso('Tema oscuro desde la vista previa (persistente) y contraste', async () => {
       await page.goto(`${base}/vista-previa/hospital_general`);
       await h1('Panel principal');
@@ -304,6 +369,19 @@ async function main() {
               await h1(titulo);
               const d = await desborde();
               assert.ok(d <= 1, `${esq} ${ancho}px ${inst}/${ruta}: desborde horizontal de ${d}px`);
+            }
+            // También las pestañas internas (incluido Datos generales): se navegan
+            // por la interfaz, sin volver a cargar la sesión entre cada pestaña.
+            await page.goto(`${base}/vista-previa/${inst}/pacientes/vista-previa`);
+            await h1('Expediente clínico');
+            for (const pestana of m.pestanas) {
+              await page.getByRole('tab', { name: pestana, exact: true }).click();
+              await page.getByRole('tabpanel', { name: pestana }).waitFor();
+              const d = await desborde();
+              assert.ok(d <= 1, `${esq} ${ancho}px ${inst} pestaña ${pestana}: desborde horizontal de ${d}px`);
+              if (ancho === 390 && ['Piezas dentales', 'Resultados', 'Datos generales'].includes(pestana)) {
+                await captura(`vp-movil-${inst}-tab-${pestana.replace(/\W+/g, '-')}-${esq}`);
+              }
             }
             if (ancho === 390) {
               await page.goto(`${base}/vista-previa/${inst}/pacientes`);

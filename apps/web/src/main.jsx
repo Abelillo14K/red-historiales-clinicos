@@ -7,6 +7,7 @@ import { NotificationsProvider } from './plataforma/ui/index.js';
 import { registro } from './plataforma/modulos/registro.js';
 import { aplicarTema, leerTema, vigilarSistema } from './plataforma/tema.js';
 import './styles.css';
+import './mockup.css';
 
 aplicarTema(leerTema()); // index.html ya lo resolvió antes del primer pintado; aquí se confirma
 vigilarSistema();

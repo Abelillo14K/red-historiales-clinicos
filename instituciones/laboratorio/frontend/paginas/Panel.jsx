@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useModulo } from '@plataforma/modulos/ModuloContext.jsx';
-import { Card, Icon, PageHeader, PendienteIntegracion, StatCard, TablaPendiente } from '@plataforma/ui/index.js';
+import { Card, Icon, PageHeader, PendienteIntegracion, SectionIntro, StatCard, TablaPendiente } from '@plataforma/ui/index.js';
 
 // Indicadores previstos. Sin backend se muestra «—» (nunca un número inventado).
 const INDICADORES = [
@@ -24,17 +24,18 @@ export default function Panel() {
     <>
       <PageHeader titulo="Panel principal" descripcion={`Resumen de la actividad de ${modulo.nombre}.`} />
       <PendienteIntegracion />
-      <section className="stats" aria-label="Resumen">
+      <SectionIntro titulo={modulo.nombre} icono="matraz" descripcion="Solicitudes, muestras, análisis y emisión de informes del laboratorio." />
+      <section className="stats preview-indicators" aria-label="Resumen">
         {INDICADORES.map(i => <StatCard key={i.etiqueta} {...i} valor="—" texto contexto="Sin datos hasta conectar el backend" />)}
       </section>
       <div className="grid grid-main">
-        <Card titulo="Solicitudes recientes" descripcion="Últimas solicitudes de exámenes recibidas.">
+        <Card titulo="Solicitudes recientes" icono="matraz" descripcion="Últimas solicitudes de exámenes recibidas.">
           <TablaPendiente titulo="Solicitudes recientes" columnas={[
             { clave: 'fecha', titulo: 'Fecha de solicitud' }, { clave: 'paciente', titulo: 'Paciente' },
             { clave: 'examen', titulo: 'Examen' }, { clave: 'estado', titulo: 'Estado' }
           ]} />
         </Card>
-        <Card titulo="Accesos rápidos">
+        <Card titulo="Accesos rápidos" icono="derecha">
           <div className="quick-actions">
             {ACCESOS.filter(a => puede(a.permiso)).map(a => (
               <Link key={a.to} className="quick-action" to={enlace(a.to)}>

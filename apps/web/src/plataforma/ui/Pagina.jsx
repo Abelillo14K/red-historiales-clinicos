@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Icon } from './Icon.jsx';
 
 // Encabezado de página: título, descripción, metadatos y acciones.
 export function PageHeader({ titulo, descripcion, acciones, children, antes }) {
@@ -18,13 +19,13 @@ export function PageHeader({ titulo, descripcion, acciones, children, antes }) {
 }
 
 // Tarjeta con encabezado opcional.
-export function Card({ titulo, acciones, children, className = '', id, descripcion }) {
+export function Card({ titulo, acciones, children, className = '', id, descripcion, icono }) {
   return (
-    <section className={`card ${className}`} aria-labelledby={titulo && id ? `${id}-t` : undefined}>
+    <section id={id} className={`card ${className}`} aria-labelledby={titulo && id ? `${id}-t` : undefined}>
       {(titulo || acciones) && (
         <div className="card-head">
           <div>
-            {titulo && <h2 id={id ? `${id}-t` : undefined}>{titulo}</h2>}
+            {titulo && <h2 className={icono ? 'card-heading-icon' : undefined} id={id ? `${id}-t` : undefined}>{icono && <span aria-hidden="true"><Icon name={icono} size={18} /></span>}{titulo}</h2>}
             {descripcion && <p className="meta">{descripcion}</p>}
           </div>
           {acciones && <div className="actions">{acciones}</div>}

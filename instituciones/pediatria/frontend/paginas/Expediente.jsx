@@ -140,20 +140,30 @@ function DialogoArchivar({ abierto, paciente, onCerrar, onHecho }) {
   }
 
   return (
-    <Dialogo abierto={abierto} titulo="Archivar historial" descripcion="Baja administrativa del paciente. Solo la administración puede consultar historiales archivados." onCerrar={onCerrar}>
+    <Dialogo abierto={abierto} ancho titulo="Archivar historial" descripcion="El historial no se elimina: se conserva completo en solo lectura. Solo la administración puede consultarlo." onCerrar={onCerrar}>
       <form onSubmit={enviar} className="stack">
         {envio.error && <Alerta>{envio.error.message}</Alerta>}
-        <FormField label="Motivo" required>
-          {a => <select {...a} value={motivo} onChange={e => setMotivo(e.target.value)}>
-            <option value="">Seleccione…</option>
-            <option>Traslado a otra institución</option>
-            <option>Fallecimiento</option>
-            <option>Otra causa administrativa</option>
-          </select>}
-        </FormField>
+        <fieldset className="fieldset-plain">
+          <legend>Motivo de la baja *</legend>
+          <div className="archive-reasons mt-4">
+            {[
+              ['Traslado a otra institución', 'Continuará su atención en otra institución.'],
+              ['Fallecimiento', 'Se conserva la información del paciente.'],
+              ['Otra causa administrativa', 'Indique el detalle de la causa administrativa.']
+            ].map(([valor, descripcion]) => <label className="archive-reason" key={valor}>
+              <input type="radio" name="motivo-archivo" value={valor} checked={motivo === valor} onChange={() => setMotivo(valor)} required />
+              <span><b>{valor}</b><small>{descripcion}</small></span>
+            </label>)}
+          </div>
+        </fieldset>
         {motivo === 'Otra causa administrativa' && (
           <FormField label="Detalle del motivo" required>{a => <input {...a} value={otro} onChange={e => setOtro(e.target.value)} maxLength={200} />}</FormField>
         )}
+        <div className="archive-effects">
+          <div><Icon name="archivo" /><b>Solo lectura</b><p>No admitirá consultas, controles ni vacunas nuevos.</p></div>
+          <div><Icon name="pacientes" /><b>Historial completo</b><p>Se conservan los registros existentes.</p></div>
+          <div><Icon name="auditoria" /><b>Auditoría</b><p>La acción se registra con tu usuario.</p></div>
+        </div>
         <div className="form-actions">
           <button type="button" className="btn" onClick={onCerrar}>Cancelar</button>
           <BotonEnviar enviando={envio.enviando} className="btn btn-danger solid">Archivar…</BotonEnviar>

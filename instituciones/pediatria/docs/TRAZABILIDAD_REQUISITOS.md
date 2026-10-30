@@ -11,13 +11,13 @@ Auditoría del 24/10/2026 contra los documentos oficiales, leídos directamente:
 
 **Responsable.** **Individual**: módulo Centro Médico Pediátrico con MongoDB (este repositorio). **Grupal**: otras instituciones, autenticación compartida definitiva, comparación conjunta.
 
-**Evidencia.** **U** = `npm test` con el doble en memoria · **I** = `instituciones/pediatria/tests/mongo.integration.test.js` (MongoDB real desechable) · **E** = `npm run test:e2e` (Edge real + API + MongoDB desechable, 24 pasos) · **R** = verificación de solo lectura contra `centro_pediatrico_db` el 24/10/2026 (`npm run db:validadores`: 4 colecciones con validador de Fase II y 0 documentos que lo incumplen). Resultados actuales: **71/71 pruebas** y **24/24 pasos E2E**.
+**Evidencia.** **U** = pruebas con el doble en memoria · **I** = `instituciones/pediatria/tests/mongo.integration.test.js` (MongoDB real desechable, standalone y replica set) · **E** = `npm run test:e2e` (Edge real + API + MongoDB desechable, 27 pasos) · **R** = verificación histórica de solo lectura contra `centro_pediatrico_db` el 24/10/2026 (`npm run db:validadores`: 4 colecciones con validador de Fase II y 0 documentos que lo incumplen). Verificación del 29/10/2026: **134/134 pruebas** (`npm test`: plataforma 30 + Pediatría 104), **27/27 pasos E2E** y **12/12 pasos de vista previa**. Esta verificación utiliza bases desechables; no actualiza la evidencia histórica R.
 
 ## 1. Requisitos de la Entrega II [P]
 
 | ID | Origen | Requisito | Estado | Implementación | Evidencia | Observaciones / acción necesaria | Responsable |
 |---|---|---|---|---|---|---|---|
-| P-01 | [P] p. 3 | Aplicación cliente-servidor: el cliente consulta y administra el historial | **Cumplido** (módulo) | API Express (`instituciones/pediatria/backend/app.js`) + React/Vite (`frontend/`) servidos desde el mismo origen | E (24 pasos), U | — | Individual |
+| P-01 | [P] p. 3 | Aplicación cliente-servidor: el cliente consulta y administra el historial | **Cumplido** (módulo) | API Express (`instituciones/pediatria/backend/app.js`) + React/Vite (`frontend/`) servidos desde el mismo origen | E (27 pasos), U | — | Individual |
 | P-02 | [P] p. 1 y 3 | Arquitectura hexagonal como punto de partida común | **Cumplido** (módulo) | `instituciones/pediatria/backend/domain` → `instituciones/pediatria/backend/application` → `instituciones/pediatria/backend/ports` ← `instituciones/pediatria/backend/adapters/mongo`; doble en memoria con los mismos puertos | U «el adaptador MongoDB y el doble de prueba implementan los mismos puertos» | Los otros motores deben implementar los mismos puertos o su equivalente (guía §6) | Individual / Grupal |
 | P-03 | [P] p. 2–3 | Cuatro instituciones con cuatro motores distintos (PostgreSQL, MySQL, MongoDB, Firebase), sin repetir | **Pendiente** (grupal) | Solo existe el Centro Pediátrico con MongoDB | — | La Fase I asigna Laboratorio→PostgreSQL (p. 39–40) y Odontología→MySQL (p. 40), pero la sección del Hospital dice «implementado en Mysql» con llaves `SERIAL` (p. 25), y Firebase no aparece asignado. **El equipo debe confirmar la asignación** | Grupal |
 | P-04 | [P] p. 3 | Justificar por escrito por qué cada institución encaja con su motor | **Parcial** | MongoDB justificado en [F1] p. 42 y `instituciones/pediatria/docs/MODELO_Y_DECISIONES.md` | — | Falta la justificación de las otras tres en el documento comparativo | Individual (hecho) / Grupal |
@@ -63,6 +63,10 @@ Auditoría del 24/10/2026 contra los documentos oficiales, leídos directamente:
 |---|---|---|
 | El contador «Dosis pendientes» del panel incluía historiales archivados, mientras la lista y la página Vacunación a las que enlaza solo muestran activos | El contador usa el mismo criterio (solo activos); cada indicador explica qué incluye | I «archivado: solo lectura…» (comparación con `vacunacion.pendientes`) |
 | Varias respuestas de error no traían `codigo` (validación, ruta inexistente, 409 por índice, 413, 429, 500) | Se agregó `codigo` estable sin cambiar estados ni mensajes (cambio aditivo) | U «toda respuesta de error trae { error, codigo } estable» |
+| La edición podía crear una identidad que el alta rechazaría por duplicada | Exclusión compartida para altas/ediciones, búsqueda excluyendo el propio paciente y comparación atómica de identidad previa | U `integridad-auditoria.test.js`, I standalone y replica set |
+| Un cambio de nacimiento intercalado con una escritura clínica podía dejar una fecha incompatible | Filtros atómicos de nacimiento vigente en consulta, crecimiento, programación y aplicación de vacunas | U e I: cuatro carreras deterministas; sin escritura clínica parcial ni evento de éxito |
+| Panel y pendientes no registraban lectura; una lectura podía devolverse con la bitácora caída | Se auditan panel, listado y pendientes; lecturas y acceso de desarrollo responden `503` sin datos/token si no se persiste el evento | U (HTTP y recuperación), I (fallo real de validador de bitácora), E (filtros de nuevas acciones) |
+| La API podía arrancar aunque fallara un índice esencial | Los índices únicos son indispensables para el arranque; `db:indices` devuelve error ante cualquier fallo | U (clasificación) e I (duplicado que impide crear índice, sin borrar documentos) |
 
 ## 4. Pendientes que no son del módulo individual
 

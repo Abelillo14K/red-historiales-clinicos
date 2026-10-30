@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Card, DataTable, EmptyState, ErrorState, FilterBar, LoadingState, SearchBar, useCarga } from '@plataforma/ui/index.js';
+import { Card, ContextPanel, DataTable, EmptyState, ErrorState, FilterBar, LoadingState, MetricStrip, SearchBar, SectionIntro, useCarga } from '@plataforma/ui/index.js';
 import { DialogoPrescripcion } from './Consultas.jsx';
 import { fechaHora, fechaLocal } from '@plataforma/formato.js';
 
@@ -20,7 +20,15 @@ export default function Prescripciones({ paciente, editable, recargar: recargarP
     .filter(({ m }) => !t || m.nombre.toLowerCase().includes(t));
 
   return (
-    <Card titulo="Medicamentos recetados" descripcion="Historial de todas las prescripciones, de la más reciente a la más antigua. El sistema no sugiere medicamentos ni dosis."
+    <>
+    <SectionIntro titulo="Prescripciones y medicamentos" descripcion="Consulta lo indicado por el médico en cada atención." icono="receta" />
+    <MetricStrip items={[
+      { etiqueta: 'Prescripciones registradas', valor: datos.length, icono: 'receta' },
+      { etiqueta: 'Medicamentos en esta vista', valor: filas.length, icono: 'buscar' },
+      { etiqueta: 'Consultas de origen', valor: new Set(datos.map(rx => rx.id_consulta)).size, icono: 'consulta' }
+    ]} />
+    <div className="workspace-grid"><div className="workspace-main">
+    <Card titulo="Medicamentos recetados" icono="receta" descripcion="Historial de todas las prescripciones, de la más reciente a la más antigua. El sistema no sugiere medicamentos ni dosis."
       acciones={puedeRecetar && consultas.length > 0 && <button type="button" className="btn btn-primary btn-sm" onClick={() => setAbierto(true)}>Nueva prescripción</button>}>
       {puedeRecetar && consultas.length === 0 && <p className="meta mb-3">Para recetar primero registre una consulta.</p>}
       {datos.length === 0 ? <EmptyState icono="receta" titulo="Sin prescripciones registradas" /> : <>
@@ -44,5 +52,12 @@ export default function Prescripciones({ paciente, editable, recargar: recargarP
       <DialogoPrescripcion abierto={abierto} consultas={consultas} paciente={paciente} onCerrar={() => setAbierto(false)}
         onHecho={() => { setAbierto(false); recargarPaciente(); }} />
     </Card>
+    </div><aside className="workspace-aside" aria-label="Contexto de prescripciones">
+      <ContextPanel titulo="Trazabilidad" icono="auditoria" items={[
+        ['Paciente', paciente.id_paciente], ['Origen', 'Consulta registrada'], ['Orden', 'Más reciente primero']
+      ]} />
+      <ContextPanel titulo="Indicaciones registradas" icono="medico" descripcion="Cada medicamento conserva la dosis, frecuencia, duración y vía indicadas por el profesional en su consulta." />
+    </aside></div>
+    </>
   );
 }

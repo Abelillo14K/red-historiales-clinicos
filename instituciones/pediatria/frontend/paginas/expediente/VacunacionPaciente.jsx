@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Alerta, BotonEnviar, Campo, Card, DataTable, Dialogo, EmptyState, ErrorState, LoadingState, StatusBadge, useCarga, useConfirmar, useEnvio, useNotificar } from '@plataforma/ui/index.js';
+import { Alerta, BotonEnviar, Campo, Card, DataTable, Dialogo, EmptyState, ErrorState, FormSummary, LoadingState, MetricStrip, SectionHeading, SectionIntro, StatusBadge, useCarga, useConfirmar, useEnvio, useNotificar } from '@plataforma/ui/index.js';
 import { MedicoSelect } from '../../componentes/ClinicoCampos.jsx';
 import { aIso, fecha, fechaHora, hoy, localAhora } from '@plataforma/formato.js';
 
@@ -41,10 +41,18 @@ export default function VacunacionPaciente({ paciente, editable, medicos, vacuna
 
   return (
     <>
+      <SectionIntro titulo="Vacunación del paciente" descripcion="Programación, aplicación y trazabilidad de las dosis del expediente." icono="vacuna" />
+      <MetricStrip items={[
+        { etiqueta: 'Dosis pendientes', valor: datos ? cuenta('Pendiente') : null, icono: 'calendario', tono: 'warn' },
+        { etiqueta: 'Dosis aplicadas', valor: datos ? cuenta('Aplicada') : null, icono: 'vacuna', tono: 'ok' },
+        { etiqueta: 'Dosis canceladas', valor: datos ? cuenta('Cancelada') : null, icono: 'archivo' }
+      ]} />
       {puedeEscribir && (
-        <Card titulo="Programar dosis" descripcion="Una misma vacuna y número de dosis solo puede estar programada o aplicada una vez.">
+        <Card titulo="Programar dosis" icono="calendario" descripcion="Una misma vacuna y número de dosis solo puede estar programada o aplicada una vez.">
           <form onSubmit={programar}>
             {envio.error && <Alerta>{envio.error.message}</Alerta>}
+            <div className="form-layout"><div>
+            <SectionHeading numero="1" titulo="Datos de la programación" />
             <div className="form-grid">
               <Campo label="Vacuna" required>{a => (
                 <select {...a} value={f.id_vacuna} onChange={e => { envio.setError(null); setF({ ...f, id_vacuna: e.target.value }); }}>
@@ -55,11 +63,17 @@ export default function VacunacionPaciente({ paciente, editable, medicos, vacuna
               <Campo label="Número de dosis" required>{a => <input {...a} type="number" min="1" max="20" step="1" value={f.numero_dosis} onChange={e => { envio.setError(null); setF({ ...f, numero_dosis: e.target.value }); }} />}</Campo>
               <Campo label="Fecha programada" required>{a => <input {...a} type="date" min={String(paciente.fecha_nacimiento).slice(0, 10)} value={f.fecha_programada} onChange={e => { envio.setError(null); setF({ ...f, fecha_programada: e.target.value }); }} />}</Campo>
             </div>
-            <div className="form-actions"><BotonEnviar enviando={envio.enviando}>Programar</BotonEnviar></div>
+            </div><FormSummary titulo="Nueva dosis" items={[
+              ['Vacuna', vacunas.find(v => v.id_vacuna === f.id_vacuna)?.nombre || 'Sin seleccionar'],
+              ['Dosis', f.numero_dosis || '—'], ['Fecha', f.fecha_programada || 'Sin seleccionar']
+            ]}>
+              <p className="summary-note">La aplicación se registra después, con fecha, lote y médico responsable.</p>
+              <BotonEnviar enviando={envio.enviando} className="btn btn-primary btn-block">Programar</BotonEnviar>
+            </FormSummary></div>
           </form>
         </Card>
       )}
-      <Card titulo="Esquema de vacunación" descripcion="Dosis programadas por el personal. Las canceladas se conservan en el historial; una dosis aplicada no puede volver a aplicarse."
+      <Card titulo="Esquema de vacunación" icono="vacuna" descripcion="Dosis programadas por el personal. Las canceladas se conservan en el historial; una dosis aplicada no puede volver a aplicarse."
         acciones={(
           <div className="segmented" role="group" aria-label="Filtrar por estado">
             {[['', 'Todas', (datos || []).length], ['Pendiente', 'Pendientes', cuenta('Pendiente')], ['Aplicada', 'Aplicadas', cuenta('Aplicada')], ['Cancelada', 'Canceladas', cuenta('Cancelada')]].map(([k, t, n]) => (

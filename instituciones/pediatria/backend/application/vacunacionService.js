@@ -6,7 +6,7 @@ const R = require('../domain/reglas');
 const { traza } = require('./comun');
 
 function crearVacunacionService({ pacientes, vacunas, medicos }, comun) {
-  const { leerHistorial, cargarActivo, escribir } = comun;
+  const { leerHistorial, cargarActivo, escribir, auditar } = comun;
 
   async function catalogos() {
     const [vs, ms] = await Promise.all([vacunas.listar(), medicos.listar()]);
@@ -40,7 +40,7 @@ function crearVacunacionService({ pacientes, vacunas, medicos }, comun) {
       id_medico: null, programado_por: traza(actor)
     };
     await escribir(actor, 'PROGRAMAR_VACUNA', { id_paciente: id, recurso: 'esquema_vacunacion', referencia: dosis.id_esquema },
-      () => pacientes.programarDosis(id, dosis), 'Dosis duplicada: identificador o vacuna/número de dosis ya registrado');
+      () => pacientes.programarDosis(id, dosis), 'Dosis duplicada o historial modificado durante la operación; recargue y vuelva a intentarlo');
     return { id_esquema: dosis.id_esquema };
   }
 
@@ -59,7 +59,7 @@ function crearVacunacionService({ pacientes, vacunas, medicos }, comun) {
     R.noAntesDeNacimiento(datos.fecha_aplicacion, p, 'fecha_aplicacion');
     await escribir(actor, 'APLICAR_VACUNA', { id_paciente: id, recurso: 'esquema_vacunacion', referencia: idEsquema },
       () => pacientes.aplicarDosis(id, idEsquema, { ...datos, aplicado_por: traza(actor) }),
-      'La dosis dejó de estar pendiente (posible doble aplicación)');
+      'La dosis dejó de estar pendiente o el historial cambió durante la operación; recargue y vuelva a intentarlo');
     return { ok: true };
   }
 
@@ -72,8 +72,9 @@ function crearVacunacionService({ pacientes, vacunas, medicos }, comun) {
     return { ok: true };
   }
 
-  async function pendientes(_actor, { limite = 20 } = {}) {
+  async function pendientes(actor, { limite = 20 } = {}) {
     const [lista, { vs }] = await Promise.all([pacientes.dosisPendientes({ limite }), catalogos()]);
+    await auditar(actor, 'LEER_VACUNACION_PENDIENTE', { recurso: 'vacunacion' });
     return lista.map(d => ({ ...d, vacuna: vs.get(d.id_vacuna)?.nombre || null }));
   }
 

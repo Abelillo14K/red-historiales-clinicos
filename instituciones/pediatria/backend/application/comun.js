@@ -31,15 +31,14 @@ function protegerTutores(paciente, actor) {
 const CAPACIDADES_FASE2 = async () => ({ perimetro_cefalico_opcional: true });
 
 function crearComun({ pacientes, auditoria, unidad, capacidades = CAPACIDADES_FASE2 }) {
-  // Lecturas y accesos denegados: no hay escritura clínica con la que agruparlos,
-  // así que se insertan directamente. Sin transacciones, un fallo aquí se informa
-  // en el registro del servidor y no impide la lectura.
+  // Una lectura se devuelve únicamente después de persistir su evento. Si la
+  // bitácora falla, no se entrega información sin traza (también en standalone).
   async function auditar(actor, accion, datos = {}) {
     try {
       await auditoria.registrar(crearEvento(actor, accion, datos));
     } catch (e) {
-      if (await unidad.soportaTransacciones()) throw e;
       console.error(`[auditoria] no se pudo registrar ${accion}: ${e.message}`);
+      throw new E.DomainError('No se pudo registrar el acceso en la bitácora. Vuelva a intentarlo.', 503, 'AUDITORIA_NO_DISPONIBLE');
     }
   }
 
@@ -49,7 +48,8 @@ function crearComun({ pacientes, auditoria, unidad, capacidades = CAPACIDADES_FA
     const p = await pacientes.obtener(id);
     if (!p) throw E.notFound('Paciente inexistente');
     if (p.estado_historial !== 'Activo' && actor.rol !== 'administrador') {
-      await auditar(actor, accion, { id_paciente: id, resultado: 'DENEGADO', detalle: 'Historial archivado' });
+      // Se mantiene el rechazo aunque falle su auditoría; nunca se entrega el historial.
+      await auditar(actor, accion, { id_paciente: id, resultado: 'DENEGADO', detalle: 'Historial archivado' }).catch(() => {});
       throw E.forbidden('Historial archivado: solo el administrador puede consultarlo');
     }
     await auditar(actor, p.estado_historial === 'Activo' ? accion : `${accion}_ARCHIVADO`, { id_paciente: id });

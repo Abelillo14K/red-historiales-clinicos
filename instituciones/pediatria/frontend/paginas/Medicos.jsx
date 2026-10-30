@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Card, DataTable, ErrorState, FilterBar, FormField, LoadingState, PageHeader, StatusBadge, useCarga } from '@plataforma/ui/index.js';
+import { Card, DataTable, ErrorState, FilterBar, FormField, LoadingState, MetricStrip, PageHeader, StatusBadge, useCarga } from '@plataforma/ui/index.js';
 
 export default function Medicos() {
   const { api } = useSesion();
@@ -11,7 +11,12 @@ export default function Medicos() {
   return (
     <>
       <PageHeader titulo="Médicos" descripcion="Profesionales del centro y sus especialidades. Se referencian desde las consultas y las vacunas aplicadas." />
-      <Card>
+      <MetricStrip items={[
+        { etiqueta: 'Profesionales en esta vista', valor: med.datos?.length, icono: 'medico' },
+        { etiqueta: 'Especialidades disponibles', valor: esp.datos?.length, icono: 'consulta' },
+        { etiqueta: 'Filtro de especialidad', valor: especialidad || 'Todas', icono: 'buscar' }
+      ]} />
+      <Card titulo="Directorio de profesionales" icono="medico">
         <FilterBar etiqueta="Filtrar médicos" resumen={med.datos && <span role="status">{med.datos.length} {med.datos.length === 1 ? 'médico' : 'médicos'}</span>}>
           <FormField label="Especialidad">{a => (
             <select {...a} value={especialidad} onChange={e => setEspecialidad(e.target.value)}>

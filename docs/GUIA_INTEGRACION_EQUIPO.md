@@ -2,7 +2,7 @@
 
 Cómo conectar el Hospital General, la Clínica Odontológica y el Laboratorio Clínico a la plataforma compartida **Red de Historiales Clínicos** sin modificar el módulo del Centro Médico Pediátrico.
 
-> **Estado real (25/10/2026).** En este repositorio solo funciona el Centro Médico Pediátrico con MongoDB. Ninguna otra institución, motor ni inicio de sesión común está implementado. El **frontend** del Hospital General, la Clínica Odontológica y el Laboratorio Clínico está **preparado visualmente y pendiente de integración** en `instituciones/<carpeta>/frontend/{hospital,odontologia,laboratorio}/`: sin backend, sin registrar y sin datos. Se revisa en la vista previa de desarrollo (`/vista-previa`). La guía práctica del frontend para los tres integrantes está en [`FRONTEND_EQUIPO.md`](FRONTEND_EQUIPO.md). Responsables: Pediatría, el propietario del proyecto; Hospital, Ely; Odontología y Laboratorio, Eddy ([`ARQUITECTURA.md`](ARQUITECTURA.md) §6). La asignación de motores todavía no está confirmada (ver §1).
+> **Estado real.** En este repositorio solo funciona el Centro Médico Pediátrico con MongoDB. Ninguna otra institución, motor ni inicio de sesión común está implementado. El **frontend** del Hospital General, la Clínica Odontológica y el Laboratorio Clínico está **preparado visualmente y pendiente de integración** en `instituciones/{hospital,odontologia,laboratorio}/frontend/`: sin backend, sin registrar y sin datos. Se revisa en la vista previa de desarrollo (`/vista-previa`). La guía práctica del frontend para los tres integrantes está en [`FRONTEND_EQUIPO.md`](FRONTEND_EQUIPO.md). Responsables: Pediatría, el propietario del proyecto; Hospital, Ely; Odontología y Laboratorio, Eddy ([`ARQUITECTURA.md`](ARQUITECTURA.md) §6). La asignación de motores todavía no está confirmada (ver §1).
 
 ## Índice
 1. [Requisitos previos](#1-requisitos-previos)
@@ -124,6 +124,8 @@ El token viaja en `Authorization: Bearer <JWT>`. El frontend lo guarda en `sessi
 | Referencia a otro recurso inexistente (médico, vacuna) | 422 | `REFERENCIA_INVALIDA` |
 | El motor rechazó el documento o la fila (validador, CHECK, regla de seguridad) | 422 | `VALIDACION_MOTOR` |
 | Demasiadas solicitudes | 429 | `DEMASIADAS_SOLICITUDES` |
+| No se pudo registrar el acceso; la respuesta no entrega datos ni token | 503 | `AUDITORIA_NO_DISPONIBLE` |
+| Autenticación sin configuración válida | 503 | `AUTENTICACION_NO_DISPONIBLE` |
 | Error interno | 500 | `ERROR_INTERNO` (mensaje genérico) |
 
 Pediatría cumple esta tabla (`instituciones/pediatria/tests/api.test.js`, «toda respuesta de error trae { error, codigo } estable»). El cliente común (`apps/web/src/plataforma/api/http.js`) convierte cualquier error en `ApiError { status, codigo, detalles }`, cierra la sesión ante un `401` y muestra `403` como «Acceso restringido».

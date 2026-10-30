@@ -12,19 +12,19 @@ const PUERTOS = {
   PacienteRepository: [
     'crear',               // (paciente) -> void; lanza conflicto si el id existe
     'siguienteId',         // () -> 'P###'
-    'buscarDuplicado',     // ({nombres, apellidos, fecha_nacimiento}) -> paciente|null
+    'buscarDuplicado',     // ({nombres, apellidos, fecha_nacimiento}, excluirId?) -> paciente|null
     'listar',              // ({texto, estado, sexo, limite, saltar, buscarDpi}) -> {items, total}
     'obtener',             // (id) -> historial completo|null
     'obtenerAdministrativo', // (id) -> datos sin información clínica|null
-    'actualizarDatos',     // (id, campos) -> bool (solo Activo; false si fecha_nacimiento quedaría tras un registro fechado)
+    'actualizarDatos',     // (id, campos, identidadPrevia?) -> bool; compara identidad previa y fechas clínicas atómicamente
     'reemplazarTutores',   // (id, tutoresPrevios, tutoresNuevos) -> bool (concurrencia optimista)
-    'agregarConsulta',     // (id, consulta, control|null) -> bool
+    'agregarConsulta',     // (id, consulta, control|null) -> bool; fecha >= nacimiento vigente
     'agregarDiagnostico',  // (id, idConsulta, diagnostico) -> bool
     'establecerTratamiento', // (id, idConsulta, nuevo, previo|null, datosReemplazo) -> bool; conserva el previo
     'agregarPrescripcion', // (id, idConsulta, prescripcion) -> bool
-    'agregarControl',      // (id, control) -> bool (la consulta debe existir)
-    'programarDosis',      // (id, dosis) -> bool (sin misma vacuna+dosis vigente)
-    'aplicarDosis',        // (id, idEsquema, datos) -> bool (solo si Pendiente)
+    'agregarControl',      // (id, control) -> bool (consulta existente y fecha >= nacimiento vigente)
+    'programarDosis',      // (id, dosis) -> bool (sin misma vacuna+dosis vigente; fecha >= nacimiento)
+    'aplicarDosis',        // (id, idEsquema, datos) -> bool (Pendiente y fecha >= nacimiento vigente)
     'cancelarDosis',       // (id, idEsquema, datos) -> bool (solo si Pendiente)
     'archivar',            // (id, datos) -> bool (solo si Activo)
     'resumen',             // () -> contadores para el panel
