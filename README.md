@@ -187,11 +187,11 @@ Si el puerto 3001 está ocupado: `$env:PORT=3002; npm start` (o cambie `PORT` en
 ## 4. Pruebas
 
 ```powershell
-npm test                      # plataforma + Pediatría (108 pruebas)
+npm test                      # plataforma + Pediatría (134 pruebas)
 npm run test:plataforma       # 30: contrato de módulos, portal de instituciones, módulos pendientes, cliente HTTP, proxy de Vite, compilación sin vista previa
-npm run test:pediatria        # 78: backend, seguridad, permisos e integración con MongoDB desechable
+npm run test:pediatria        # 104: backend, seguridad, permisos e integración con MongoDB desechable
 npm run test:e2e              # Pediatría en Edge/Chrome real con MongoDB desechable (27 pasos)
-npm run test:e2e:vista-previa # vista previa de los módulos pendientes con Vite real (10 pasos)
+npm run test:e2e:vista-previa # vista previa de los módulos pendientes con Vite real (12 pasos)
 npm run test:todo             # todo lo anterior
 npm audit                     # dependencias de la raíz
 npm --prefix apps/web audit   # dependencias de la aplicación web

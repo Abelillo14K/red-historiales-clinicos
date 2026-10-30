@@ -69,9 +69,15 @@ Un servidor standalone **no admite transacciones multidocumento**. Escritura cl�
 
 Qué **no** garantiza (y no se afirma):
 - La auditoría **no es transaccional**: un evento puede llegar a `bitacora_acceso` con retraso.
-- Las **lecturas** y los **accesos denegados** no tienen escritura clínica con la que agruparse; se insertan directamente y, si la bitácora falla, solo se informa en el registro del servidor.
+- Las **lecturas** no tienen escritura clínica con la que agruparse; su evento se inserta antes de devolver los datos. Si falla, la API responde `503 AUDITORIA_NO_DISPONIBLE` sin entregar datos. Esto incluye panel, listado, pendientes de vacunación e historiales. El inicio de sesión de desarrollo tampoco entrega el token sin registrar su evento. Los accesos denegados se siguen rechazando aunque falle su auditoría; ese fallo se informa en el registro del servidor.
 - Las altas de catálogo (`medicos`, `vacunas`) pasan por la unidad de trabajo con su evento. Con replica set se confirman o revierten juntas (verificado con el replica set desechable). En standalone no hay documento de paciente donde embeber el evento: se inserta justo después del alta y, si la bitácora falla, el alta queda hecha y el fallo solo aparece en el registro del servidor. Embeberlo en `medicos`/`vacunas` exigiría cambiar sus validadores, lo que no se hizo.
-- La protección contra pacientes duplicados (mismos nombres, apellidos y fecha de nacimiento, sin distinguir mayúsculas) serializa las altas **dentro de un proceso** de la API. Con varias instancias de la API contra la misma base volvería a existir la carrera. Las opciones para cerrarla en la base, y por qué no se recomienda un índice único sobre nombres + apellidos + fecha de nacimiento, están en `instituciones/pediatria/docs/MODELO_Y_DECISIONES.md` §4.1 (decisión pendiente del equipo).
+- La protección contra pacientes duplicados (mismos nombres, apellidos y fecha de nacimiento, sin distinguir mayúsculas) serializa altas y ediciones por identidad destino **dentro de una instancia del servicio** de la API. La edición compara además la identidad previa en la escritura para evitar mezclar cambios parciales concurrentes. Con varias instancias contra la misma base volvería a existir la carrera entre identidades de documentos distintos. Las opciones para cerrarla en la base están en `instituciones/pediatria/docs/MODELO_Y_DECISIONES.md` §4.1.
+
+Los filtros de consultas, controles y vacunación verifican el nacimiento vigente en la misma escritura. Un cambio concurrente incompatible responde `409`, sin guardar un registro clínico parcial ni un evento de éxito. Estas carreras se prueban con standalone y replica set desechables.
+
+### 4.1 Índices de arranque
+
+Los índices únicos de identificadores, colegiado e `id_evento` de auditoría son esenciales. Si no pueden crearse, `npm start` falla antes de atender peticiones. No se borran documentos ni índices para forzar su creación. Los fallos de índices no únicos se notifican como incidencias de rendimiento. `npm run db:indices` devuelve un código de salida distinto de cero si falla cualquier índice.
 
 ## 5. Plan de migración a replica set (opcional, **no ejecutado**)
 

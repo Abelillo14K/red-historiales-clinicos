@@ -50,17 +50,17 @@ Todas las fechas se guardan como **BSON Date** (UTC). `fecha_nacimiento` y `fech
 | bitacora_acceso | `id_paciente, fecha_hora`; `fecha_hora` | Consulta de auditoría |
 | bitacora_acceso | `id_evento` único parcial (solo si es texto) | Entrega idempotente del outbox; no afecta eventos anteriores |
 
-Todos se crean con `createIndex` (idempotente, no destructivo) al iniciar la API o con `npm run db:indices`.
+Todos se crean con `createIndex` (idempotente, no destructivo) al iniciar la API o con `npm run db:indices`. Si falla un índice único, la API no inicia: la unicidad de referencias y la entrega idempotente del outbox dependen de esos índices. Los fallos en índices de rendimiento se informan sin impedir el arranque; el comando `db:indices` devuelve error si falla cualquier índice.
 
 ### 4.1 Índice único de identidad de pacientes (evaluado, **no implementado**)
 
-**Situación actual.** Al registrar, la API rechaza (409) un paciente con los mismos nombres, apellidos y fecha de nacimiento que otro, sin distinguir mayúsculas. Desde la auditoría del 24/10/2026, las altas con la misma clave se ejecutan una tras otra dentro del proceso de la API, así que dos peticiones simultáneas ya no crean duplicados. La base no tiene ninguna restricción sobre esos campos.
+**Situación actual.** Al registrar o editar, la API rechaza (409) un paciente con los mismos nombres, apellidos y fecha de nacimiento que otro, sin distinguir mayúsculas. Altas y ediciones comparten una exclusión por identidad destino en el servicio de pacientes de la API; la edición excluye su propio registro al buscar coincidencias. Además, su escritura compara la identidad leída previamente para rechazar cambios concurrentes incompatibles. La base no tiene una restricción de unicidad sobre esos campos: esta exclusión corresponde a una instancia del servicio, no a varios procesos.
 
 **Premisa.** Dos pacientes distintos **pueden** compartir nombres, apellidos y fecha de nacimiento: homónimos con nombres frecuentes, o gemelos inscritos con el mismo nombre por error. Esa combinación sirve para detectar un *posible* duplicado, no para identificar a una persona. La regla actual ya tiene ese límite: hoy el segundo homónimo no se puede registrar sin cambiar algún dato.
 
 | Opción | Ventajas | Riesgos y costes |
 |---|---|---|
-| A. Mantener la exclusión en el proceso (actual) | Sin cambios de esquema ni de datos; ya está probada con mongod real | Solo protege a una instancia de la API; no cubre escrituras desde mongosh ni varias instancias |
+| A. Mantener la exclusión en el servicio (actual) | Altas y ediciones serializadas; sin cambios de esquema ni de datos; probada con mongod real | Solo protege a una instancia del servicio de la API; no cubre escrituras desde mongosh ni varias instancias |
 | B. Índice único con *collation* (`nombres, apellidos, fecha_nacimiento`, `locale: 'es'`, `strength: 2`) | La base lo garantiza ante cualquier instancia o cliente; no requiere campo nuevo; hoy hay 0 duplicados, así que se podría crear | **Convierte la heurística en una prohibición definitiva**: un homónimo real no podría registrarse nunca. Abarca también a los archivados. Un error 11000 se mostraría como "Identificador duplicado" si no se adapta el mensaje. Cualquier diferencia de espacios o tildes deja pasar duplicados aparentes |
 | C. Campo normalizado (`clave_identidad`) + índice único | Normalización controlada: tildes, espacios, mayúsculas | Las mismas restricciones que B, además de un campo nuevo en documentos existentes, cambio de validador (`collMod`, rol dbAdmin) y migración de datos |
 | D. Identificador oficial del paciente (p. ej. CUI de RENAP) con índice único **parcial** (solo cuando existe) | Identifica a la persona: los homónimos no chocan; un recién nacido sin CUI no queda bloqueado | Requiere capturar un dato nuevo (cambio del modelo de la Fase I y de los formularios) y decidir cómo tratarlo, porque es un dato personal sensible |
@@ -75,7 +75,7 @@ Notas:
 ## 5. Reglas de negocio (dominio, independientes del motor)
 
 - Exactamente **un tutor principal**; sin `id_tutor` ni DPI repetidos en un paciente.
-- Paciente duplicado (mismos nombres, apellidos y fecha de nacimiento) → 409.
+- Paciente duplicado (mismos nombres, apellidos y fecha de nacimiento) en alta o edición → 409; se excluye el propio registro al editar.
 - Fechas de consulta, control, receta y aplicación: **no futuras** (tolerancia de 5 min) ni **anteriores al nacimiento**; la receta no puede ser anterior a su consulta.
 - Un control de crecimiento debe asociarse a una **consulta existente** del paciente.
 - Una vacuna y número de dosis solo puede estar **programada o aplicada una vez** (una cancelada permite reprogramar).
@@ -88,11 +88,11 @@ Notas:
 ## 6. Consistencia
 
 - **Atomicidad por documento:** cada caso de uso clínico se traduce en un único `updateOne` (o `insertOne`) con la condición de negocio en el filtro, así que verificación y cambio son indivisibles. Ejemplo: aplicar una dosis exige `estado: 'Pendiente'` en el filtro; con dos aplicaciones simultáneas, una responde 200 y la otra 409 (probado contra MongoDB real).
-- **Concurrencia optimista:** reemplazar tutores o un tratamiento solo procede si el valor no cambió desde la lectura.
-- **Auditoría sin transacciones (servidor actual, standalone):** *outbox* embebido. El evento viaja en el mismo `updateOne` que el cambio clínico (campo `bitacora_pendiente`), después se copia a `bitacora_acceso` de forma idempotente (`id_evento` único) y se retira. Si la copia falla, se reintenta al arrancar, cada 60 s y al consultar la auditoría. **Garantía:** ningún evento de una escritura confirmada se pierde ni se duplica. **No garantiza** que la bitácora se actualice en el mismo instante; las lecturas y los accesos denegados se insertan directamente (sin outbox).
+- **Concurrencia optimista:** reemplazar tutores o un tratamiento solo procede si el valor no cambió desde la lectura. Editar datos generales compara la identidad previa; las consultas, controles y vacunas comprueban en su filtro la fecha de nacimiento vigente. Así, una modificación del nacimiento y un registro clínico simultáneos no pueden dejar fechas incompatibles, también en standalone.
+- **Auditoría sin transacciones (servidor actual, standalone):** *outbox* embebido. El evento viaja en el mismo `updateOne` que el cambio clínico (campo `bitacora_pendiente`), después se copia a `bitacora_acceso` de forma idempotente (`id_evento` único) y se retira. Si la copia falla, se reintenta al arrancar, cada 60 s y al consultar la auditoría. **Garantía:** ningún evento de una escritura confirmada se pierde ni se duplica. Las lecturas personales y clínicas (incluidos listado, panel y pendientes de vacunación) y el acceso de desarrollo requieren persistir su evento antes de responder; si la bitácora falla, responden `503 AUDITORIA_NO_DISPONIBLE` sin entregar datos ni token. Los accesos denegados siguen rechazándose aunque falle su evento.
 - **Con replica set:** `UnidadDeTrabajo` usa `session.withTransaction`: escritura clínica y bitácora se confirman o revierten juntas. Verificado con un replica set desechable; el servidor del proyecto no lo es (plan en `instituciones/pediatria/docs/OPERACION_MONGODB.md`).
 - **Integridad referencial:** MongoDB no tiene claves foráneas; los casos de uso verifican `id_medico`, `id_vacuna` e `id_consulta` antes de escribir. Los catálogos no exponen borrado, por lo que no quedan referencias colgantes.
-- **Validación en dos niveles:** Zod en la API y `$jsonSchema` en MongoDB con las mismas reglas (`instituciones/pediatria/backend/adapters/mongo/validadores.js`). Hoy solo `pacientes` tiene validador instalado (la versión inicial); la de Fase II está lista y verificada (0 documentos incumplen), y su aplicación requiere un administrador.
+- **Validación en dos niveles:** Zod en la API y `$jsonSchema` en MongoDB (`instituciones/pediatria/backend/adapters/mongo/validadores.js`). Las reglas temporales, de referencias y concurrencia se refuerzan en los casos de uso y filtros de escritura. La última comprobación documentada del 24/10/2026 informa validadores de Fase II en las cuatro colecciones y 0 documentos que incumplen; el estado de cada instalación se consulta con `npm run db:validadores`.
 
 ## 7. Seguridad
 

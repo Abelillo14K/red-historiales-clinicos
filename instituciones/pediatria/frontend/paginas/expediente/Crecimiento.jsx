@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Alerta, BotonEnviar, Campo, Card, DataTable, EmptyState, ErrorState, Icon, LoadingState, useCarga, useEnvio, useNotificar } from '@plataforma/ui/index.js';
+import { Alerta, BotonEnviar, Campo, Card, DataTable, EmptyState, ErrorState, FormSummary, Icon, LoadingState, MetricStrip, SectionHeading, SectionIntro, useCarga, useEnvio, useNotificar } from '@plataforma/ui/index.js';
 import GraficaCrecimiento from '../../componentes/GraficaCrecimiento.jsx';
 import { LIMITES_MEDICION as LIMITES, medicionParaApi, validarMedicion } from '../../componentes/ClinicoCampos.jsx';
 import { aIso, fechaHora, localAhora } from '@plataforma/formato.js';
@@ -38,11 +38,19 @@ export default function Crecimiento({ paciente, editable, recargar: recargarPaci
 
   return (
     <>
+      <SectionIntro titulo="Crecimiento y mediciones" descripcion="Evolución de las mediciones registradas, sin reemplazar controles anteriores." icono="crecimiento" />
+      <MetricStrip items={[
+        { etiqueta: 'Controles registrados', valor: datos?.length, icono: 'crecimiento' },
+        { etiqueta: 'Último peso registrado', valor: datos?.length ? `${datos.at(-1).peso_kg} kg` : '—', icono: 'crecimiento' },
+        { etiqueta: 'Última talla registrada', valor: datos?.length ? `${datos.at(-1).talla_cm} cm` : '—', icono: 'crecimiento' }
+      ]} />
       {puedeRegistrar && (
-        <Card titulo="Registrar medición" descripcion="Cada control se asocia a una consulta existente y se agrega al historial sin reemplazar mediciones anteriores.">
+        <Card titulo="Registrar medición" icono="crecimiento" descripcion="Cada control se asocia a una consulta existente y se agrega al historial sin reemplazar mediciones anteriores.">
           {consultas.length === 0 ? <Alerta tipo="info">Cada control debe asociarse a una consulta existente. Registre primero una consulta.</Alerta> : (
             <form onSubmit={enviar} noValidate>
               {envio.error && <Alerta>{envio.error.message}</Alerta>}
+              <div className="form-layout"><div>
+              <SectionHeading numero="1" titulo="Datos del control" />
               <div className="form-grid">
                 <Campo label="Consulta asociada" error={errores.id_consulta} required>{a => (
                   <select {...a} value={f.id_consulta} onChange={e => setF({ ...f, id_consulta: e.target.value })}>
@@ -52,7 +60,13 @@ export default function Crecimiento({ paciente, editable, recargar: recargarPaci
                 <Campo label="Fecha de medición" error={errores.fecha} hint="Vacío = fecha de la consulta">{a => <input {...a} type="datetime-local" max={localAhora(5)} value={f.fecha} onChange={e => setF({ ...f, fecha: e.target.value })} />}</Campo>
                 {num('peso_kg', 'Peso (kg)')}{num('talla_cm', 'Talla (cm)')}{num('perimetro_cefalico_cm', 'Perímetro cefálico (cm)')}
               </div>
-              <div className="form-actions"><BotonEnviar enviando={envio.enviando}>Guardar medición</BotonEnviar></div>
+              </div><FormSummary titulo="Nueva medición" items={[
+                ['Peso', f.peso_kg ? `${f.peso_kg} kg` : '—'], ['Talla', f.talla_cm ? `${f.talla_cm} cm` : '—'],
+                ['Perímetro cefálico', f.perimetro_cefalico_cm ? `${f.perimetro_cefalico_cm} cm` : 'Sin registrar']
+              ]}>
+                <p className="summary-note">El control se agrega a la consulta seleccionada y se conserva en el historial.</p>
+                <BotonEnviar enviando={envio.enviando} className="btn btn-primary btn-block">Guardar medición</BotonEnviar>
+              </FormSummary></div>
             </form>
           )}
         </Card>
@@ -66,7 +80,7 @@ export default function Crecimiento({ paciente, editable, recargar: recargarPaci
           <GraficaCrecimiento datos={datos} campo="perimetro_cefalico_cm" titulo="Perímetro cefálico" unidad="cm" />
         </section>
         <p className="meta charts-note"><Icon name="info" size={14} /> Las gráficas muestran únicamente las mediciones registradas en este historial. No son curvas de crecimiento de referencia (p. ej., OMS) ni calculan percentiles.</p>
-        <Card titulo="Historial de mediciones" descripcion="Orden cronológico. La edad se calcula a la fecha de cada medición." >
+        <Card titulo="Historial de mediciones" icono="calendario" descripcion="Orden cronológico. La edad se calcula a la fecha de cada medición." >
           <DataTable titulo="Historial de mediciones" filas={datos} claveFila={c => c.id_control} columnas={[
             { clave: 'fecha', titulo: 'Fecha', render: c => fechaHora(c.fecha) },
             { clave: 'edad', titulo: 'Edad a la medición', render: c => (typeof c.edad_meses === 'number' ? `${c.edad_meses} ${c.edad_meses === 1 ? 'mes' : 'meses'}` : '—') },

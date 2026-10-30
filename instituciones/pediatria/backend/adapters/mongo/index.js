@@ -21,13 +21,23 @@ const INDICES = [
 async function asegurarIndices(db) {
   const resultados = [];
   for (const [coleccion, clave, opciones] of INDICES) {
+    const esencial = opciones.unique === true;
     try {
-      resultados.push({ coleccion, indice: await db.collection(coleccion).createIndex(clave, opciones), ok: true });
+      resultados.push({ coleccion, indice: await db.collection(coleccion).createIndex(clave, opciones), esencial, ok: true });
     } catch (e) {
-      resultados.push({ coleccion, indice: JSON.stringify(clave), ok: false, error: e.codeName || e.message });
+      resultados.push({ coleccion, indice: JSON.stringify(clave), esencial, ok: false, error: e.codeName || e.message });
     }
   }
   return resultados;
+}
+
+// Los índices únicos sostienen la identidad de referencias y la entrega
+// idempotente del outbox. Sin ellos la API no debe empezar a atender peticiones.
+function exigirIndicesEsenciales(resultados) {
+  const faltantes = resultados.filter(r => r.esencial && !r.ok);
+  if (faltantes.length) {
+    throw new Error(`No se pueden garantizar los índices esenciales: ${faltantes.map(r => `${r.coleccion} ${r.indice} (${r.error})`).join('; ')}`);
+  }
 }
 
 // Lee (sin modificar) el validador instalado en `pacientes` para saber si el
@@ -58,4 +68,4 @@ function crearRepositoriosMongo(client, db) {
   };
 }
 
-module.exports = { crearRepositoriosMongo, asegurarIndices, detectarCapacidades, INDICES };
+module.exports = { crearRepositoriosMongo, asegurarIndices, exigirIndicesEsenciales, detectarCapacidades, INDICES };

@@ -125,7 +125,7 @@ El enunciado exige **un motor distinto por institución**; la Fase I tiene incon
 ## 8. Validar la estructura
 
 ```powershell
-npm test                      # 108 pruebas (plataforma 30 + Pediatría 78), incluye aislamiento entre instituciones
+npm test                      # 134 pruebas (plataforma 30 + Pediatría 104), incluye aislamiento entre instituciones
 npm run build                 # la aplicación compila con los módulos de instituciones/
 npm run test:e2e              # Pediatría completa en navegador
 npm run test:e2e:vista-previa # módulos pendientes en navegador (desarrollo)

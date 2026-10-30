@@ -22,7 +22,7 @@ export function aplicarTema(tema) {
   raiz.dataset.tema = tema;
   raiz.dataset.esquema = esquemaDe(tema);
   // Color de la barra del navegador en móviles: el fondo del esquema efectivo.
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', raiz.dataset.esquema === 'oscuro' ? '#10191C' : '#F8F6F1');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', raiz.dataset.esquema === 'oscuro' ? '#0D1426' : '#EEF1F8');
 }
 
 // Mantiene sincronizado el modo «Según el sistema» cuando cambia la preferencia del sistema operativo.

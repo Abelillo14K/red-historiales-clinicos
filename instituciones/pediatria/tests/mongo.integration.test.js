@@ -10,9 +10,10 @@ const path = require('node:path');
 const { MongoClient } = require('mongodb');
 const { iniciarMongodTemporal, binarioMongod } = require('./soporte/mongodTemporal');
 const INSTALADO = require('./soporte/validadorInstalado');
-const { crearRepositoriosMongo, asegurarIndices, detectarCapacidades } = require('../backend/adapters/mongo');
+const { crearRepositoriosMongo, asegurarIndices, exigirIndicesEsenciales, detectarCapacidades } = require('../backend/adapters/mongo');
 const A = require('../backend/adapters/mongo/administracionValidadores');
 const { crearServicios } = require('../backend/application');
+const { CASOS_NACIMIENTO, comprobarCarreraNacimiento } = require('./soporte/carrerasNacimiento');
 
 const omitir = binarioMongod() ? false : 'sin binario mongod (defina MONGOD_BIN) para la base de pruebas desechable';
 const BASE = 'centro_pediatrico_test';
@@ -28,6 +29,48 @@ const pacienteNuevo = nombre => ({
   nombres: nombre, apellidos: 'Integración', fecha_nacimiento: fechaD('2023-01-01T00:00:00Z'), sexo: 'F',
   tutores: [{ dpi: '1234567890101', nombres: 'Tutora', apellidos: 'Prueba', parentesco: 'Madre', es_principal: true }]
 });
+
+function pruebasIntegridadMongo(contexto) {
+  for (const caso of CASOS_NACIMIENTO) {
+    test(`nacimiento concurrente: ${caso.nombre} se rechaza sin escritura ni evento de éxito`, { timeout: 10000 }, async () => {
+      const { client, db } = contexto();
+      const repos = crearRepositoriosMongo(client, db);
+      const S = crearServicios(repos);
+      const { id_paciente } = await S.pacientes.registrar(SEC, pacienteNuevo(`Carrera ${caso.nombre}`));
+      await comprobarCarreraNacimiento(repos, S, id_paciente, MED, SEC, caso);
+    });
+  }
+
+  test('ediciones y altas concurrentes mantienen una sola identidad destino', async () => {
+    const { client, db } = contexto();
+    const S = crearServicios(crearRepositoriosMongo(client, db));
+    const ids = await Promise.all(['Editar uno', 'Editar dos'].map(n => S.pacientes.registrar(SEC, pacienteNuevo(n))));
+    const resultados = await Promise.allSettled([
+      ...ids.map(({ id_paciente }) => S.pacientes.actualizarDatos(SEC, id_paciente, { nombres: 'Identidad destino' })),
+      S.pacientes.registrar(SEC, pacienteNuevo('Identidad destino'))
+    ]);
+    assert.deepEqual(resultados.map(x => x.status).sort(), ['fulfilled', 'rejected', 'rejected']);
+    assert.ok(resultados.filter(x => x.status === 'rejected').every(x => x.reason.status === 409));
+    assert.equal(await db.collection('pacientes').countDocuments({ nombres: 'Identidad destino' }), 1);
+  });
+
+  test('ediciones parciales detectan la identidad anterior y excluyen el propio registro', async () => {
+    const { client, db } = contexto();
+    const S = crearServicios(crearRepositoriosMongo(client, db));
+    const { id_paciente } = await S.pacientes.registrar(SEC, pacienteNuevo('Edición parcial'));
+    const r = await Promise.allSettled([
+      S.pacientes.actualizarDatos(SEC, id_paciente, { nombres: 'Nuevo nombre' }),
+      S.pacientes.actualizarDatos(SEC, id_paciente, { apellidos: 'Nuevo apellido' })
+    ]);
+    assert.deepEqual(r.map(x => x.status).sort(), ['fulfilled', 'rejected']);
+    const actual = await db.collection('pacientes').findOne({ id_paciente });
+    await S.pacientes.actualizarDatos(SEC, id_paciente, { nombres: actual.nombres });
+    const otro = await S.pacientes.registrar(SEC, pacienteNuevo('Otro paciente'));
+    await assert.rejects(S.pacientes.actualizarDatos(SEC, otro.id_paciente, {
+      nombres: actual.nombres, apellidos: actual.apellidos, fecha_nacimiento: actual.fecha_nacimiento
+    }), { status: 409 });
+  });
+}
 
 // Datos con la forma exacta de los documentos existentes (registrados desde mongosh, sin trazas Fase II).
 async function sembrar(db, { validadorPacientes }) {
@@ -100,6 +143,8 @@ describe('MongoDB standalone (configuración actual): validadores, outbox de aud
     await assert.rejects(db.collection('pacientes').insertOne({ id_paciente: 'X1', nombres: 'A', apellidos: 'B', fecha_nacimiento: new Date(), sexo: 'X', estado_historial: 'Activo', tutores: [], consultas: [], controles_crecimiento: [], esquema_vacunacion: [] }), { code: 121 });
     await assert.rejects(db.collection('medicos').insertOne({ id_medico: 'M$', colegiado: 'C', nombres: 'N', apellidos: 'A', especialidad: { id_especialidad: 'E', nombre: 'N' } }), { code: 121 });
     await assert.rejects(db.collection('pacientes').updateOne({ id_paciente: 'P001' }, { $push: { controles_crecimiento: { id_control: 'CRX', id_consulta: 'C001', fecha: new Date(), peso_kg: -1, talla_cm: 80 } } }), { code: 121 });
+    await assert.rejects(crearRepositoriosMongo(client, db).pacientes.crear({ id_paciente: 'INVALIDO' }),
+      { status: 422, code: 'VALIDACION_MOTOR' }, 'el adaptador respeta el código del contrato HTTP común');
   });
 
   test('flujo clínico completo; perímetro opcional; registros heredados compatibles', async () => {
@@ -165,7 +210,8 @@ describe('MongoDB standalone (configuración actual): validadores, outbox de aud
       assert.equal(p.bitacora_pendiente.length, 1, 'su evento quedó en el mismo documento');
       assert.equal(p.bitacora_pendiente[0].accion, 'REGISTRAR_CONSULTA');
       // La API nunca devuelve la bandeja interna.
-      assert.equal((await S.pacientes.obtener(MED, id_paciente)).bitacora_pendiente, undefined);
+      await assert.rejects(S.pacientes.obtener(MED, id_paciente), { status: 503, code: 'AUDITORIA_NO_DISPONIBLE' });
+      assert.equal((await crearRepositoriosMongo(client, db).pacientes.obtener(id_paciente)).bitacora_pendiente, undefined);
     } finally {
       console.error = errorOriginal;
       await db.command({ collMod: 'bitacora_acceso', validator: { $jsonSchema: require('../backend/adapters/mongo/validadores').VALIDADORES.bitacora_acceso } });
@@ -211,6 +257,35 @@ describe('MongoDB standalone (configuración actual): validadores, outbox de aud
     const repo = crearRepositoriosMongo(client, db).pacientes;
     assert.equal(await repo.actualizarDatos(id_paciente, { fecha_nacimiento: fechaD('2024-03-01T00:00:00Z') }), false);
     assert.equal(await repo.actualizarDatos(id_paciente, { fecha_nacimiento: fechaD('2022-12-01T00:00:00Z') }), true);
+  });
+  pruebasIntegridadMongo(() => ({ client, db }));
+
+  test('la bitácora caída bloquea las lecturas clínicas y el acceso se recupera al restaurarla', async () => {
+    await db.command({ collMod: 'bitacora_acceso', validator: { $jsonSchema: { required: ['campo_inexistente'] } } });
+    const original = console.error; console.error = () => {};
+    try {
+      for (const leer of [() => S.panel.resumen(MED), () => S.vacunacion.pendientes(MED),
+        () => S.pacientes.listar(MED, { estado: 'Activo', limite: 20, pagina: 1 })]) {
+        await assert.rejects(leer(), { status: 503, code: 'AUDITORIA_NO_DISPONIBLE' });
+      }
+    } finally {
+      console.error = original;
+      await db.command({ collMod: 'bitacora_acceso', validator: { $jsonSchema: require('../backend/adapters/mongo/validadores').VALIDADORES.bitacora_acceso } });
+    }
+    await S.panel.resumen(MED);
+    await S.vacunacion.pendientes(MED);
+    assert.ok(await db.collection('bitacora_acceso').countDocuments({ accion: 'LEER_PANEL' }));
+    assert.ok(await db.collection('bitacora_acceso').countDocuments({ accion: 'LEER_VACUNACION_PENDIENTE' }));
+  });
+
+  test('un índice único imposible de crear impide validar el arranque, sin modificar documentos', async () => {
+    const aislada = client.db('indices_integridad_test');
+    const col = aislada.collection('pacientes');
+    await col.insertMany([{ id_paciente: 'REPETIDO' }, { id_paciente: 'REPETIDO' }]);
+    const resultados = await asegurarIndices(aislada);
+    assert.ok(resultados.some(r => r.coleccion === 'pacientes' && r.esencial && !r.ok));
+    assert.throws(() => exigirIndicesEsenciales(resultados), /índices esenciales.*pacientes/);
+    assert.equal(await col.countDocuments(), 2);
   });
 });
 
@@ -262,4 +337,5 @@ describe('MongoDB replica set (plan de migración): transacciones reales', { ski
     await S.catalogos.crearMedico(ADM, medico);
     assert.equal(await db.collection('bitacora_acceso').countDocuments({ accion: 'CREAR_MEDICO', referencia: 'M020' }), 1);
   });
+  pruebasIntegridadMongo(() => ({ client, db }));
 });

@@ -21,26 +21,33 @@ instituciones/odontologia/
     paginas/
       Panel.jsx                  indicadores (—), próximas citas, accesos rápidos
       Pacientes.jsx              búsqueda y listado (también lo usa Archivados)
-      PacienteNuevo.jsx          registro con los datos comunes (formulario deshabilitado)
+      PacienteNuevo.jsx          registro de cuatro secciones con resumen lateral (deshabilitado)
       Expediente.jsx             pestañas: datos generales, consultas, diagnósticos, tratamientos, prescripciones, piezas dentales
       Citas.jsx                  citas odontológicas (extensión propuesta)
+      NuevaConsulta.jsx          atención, evaluación, diagnósticos, tratamiento por pieza y receta
+      Archivar.jsx               motivos de baja, detalles y confirmación (diseño)
+      Administracion.jsx         catálogos y bitácora
       Archivados.jsx             historiales archivados
     componentes/
       EncabezadoExpediente.jsx   encabezado del expediente y datos clave
-      PiezasDentales.jsx         PUNTO DE EXTENSIÓN: piezas dentales y tratamientos por pieza
+      PiezasDentales.jsx         mapa visual seleccionable y detalle por pieza (sin datos clínicos)
 ```
 
-Rutas: `/`, `/pacientes`, `/pacientes/nuevo`, `/pacientes/:id[/:seccion]` (incluye `piezas`), `/citas`, `/archivados`.
+Rutas: `/`, `/pacientes`, `/pacientes/nuevo`, `/pacientes/:id[/:seccion]` (incluye `piezas`), `/pacientes/:id/consultas/nueva`, `/pacientes/:id/archivar`, `/citas`, `/catalogos`, `/bitacora`, `/archivados`.
 Permisos: comunes y `odontologia.citas.ver` (propuesta).
 
 ## Piezas dentales y odontograma
 
-No se construyó un odontograma: no existe todavía un contrato de datos (numeración de piezas, superficies, estados, tratamientos por pieza). Cuando el responsable lo defina:
+`PiezasDentales.jsx` presenta una **plantilla visual**, con selección local de una posición del diseño. No asigna numeración clínica ni representa el estado dental de un paciente. El formulario de detalle por pieza permanece deshabilitado. Cuando el responsable defina el contrato de datos:
 
-1. Implementar el componente en `frontend/componentes/PiezasDentales.jsx` (o `frontend/componentes/Odontograma.jsx`) con los componentes compartidos y los tokens `--color-*` (funciona en claro y oscuro).
+1. Vincular la numeración, superficies, estados y tratamientos reales en `frontend/componentes/PiezasDentales.jsx` (o un componente propio), conservando los tokens y componentes compartidos.
 2. Declarar la operación en `api.js` y cargarla en la pestaña «Piezas dentales» de `frontend/paginas/Expediente.jsx`.
 3. No hace falta modificar la plataforma compartida.
 
 ## Qué falta (lo decide el responsable de la Clínica)
 
 Backend propio con `GET /api/sesion`, `roles` y permisos reales, operaciones de `api.js`, campos propios, modelo de citas y piezas, y el registro en `registro.js` (`docs/FRONTEND_EQUIPO.md` §7). Sin datos ficticios ni peticiones mientras tanto.
+
+## Recorrido del diseño
+
+`/vista-previa/clinica_odontologica/pacientes` → estructura del expediente → pestañas, «Ver diseño de consulta» o «Ver diseño de archivado». Registro, agenda, catálogos y bitácora usan la misma composición de tarjetas, indicadores, formularios y paneles de contexto que las demás instituciones. Ver `docs/DISENO.md`.

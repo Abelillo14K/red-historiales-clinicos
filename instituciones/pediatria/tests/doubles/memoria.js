@@ -13,6 +13,7 @@ function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], 
   const activo = id => { const p = P.get(id); return p && p.estado_historial === 'Activo' ? p : null; };
   const consultaDe = (p, id) => (p.consultas || []).find(c => c.id_consulta === id);
   const dosisDe = (p, id) => (p.esquema_vacunacion || []).find(d => d.id_esquema === id);
+  const desdeNacimiento = (p, fecha) => p && new Date(p.fecha_nacimiento) <= new Date(fecha);
 
   const repoPacientes = {
     async crear(p) { if (P.has(p.id_paciente)) throw conflict('Identificador duplicado'); P.set(p.id_paciente, clonar(p)); },
@@ -20,8 +21,8 @@ function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], 
       const n = Math.max(0, ...[...P.keys()].filter(k => /^P\d+$/.test(k)).map(k => Number(k.slice(1))));
       return `P${String(n + 1).padStart(3, '0')}`;
     },
-    async buscarDuplicado({ nombres, apellidos, fecha_nacimiento }) {
-      const x = [...P.values()].find(p => p.nombres.toLowerCase() === nombres.toLowerCase() &&
+    async buscarDuplicado({ nombres, apellidos, fecha_nacimiento }, excluirId) {
+      const x = [...P.values()].find(p => p.id_paciente !== excluirId && p.nombres.toLowerCase() === nombres.toLowerCase() &&
         p.apellidos.toLowerCase() === apellidos.toLowerCase() && +p.fecha_nacimiento === +fecha_nacimiento);
       return x ? { id_paciente: x.id_paciente, estado_historial: x.estado_historial } : null;
     },
@@ -47,8 +48,9 @@ function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], 
       const { consultas, controles_crecimiento, esquema_vacunacion, ...resto } = clonar(P.get(id));
       return resto;
     },
-    async actualizarDatos(id, campos) {
+    async actualizarDatos(id, campos, identidadPrevia = {}) {
       const p = activo(id); if (!p) return false;
+      if (Object.entries(identidadPrevia).some(([k, v]) => k === 'fecha_nacimiento' ? +p[k] !== +v : p[k] !== v)) return false;
       const n = campos.fecha_nacimiento;
       const fechas = [...(p.consultas || []).map(c => c.fecha_hora), ...(p.controles_crecimiento || []).map(c => c.fecha),
         ...(p.esquema_vacunacion || []).flatMap(d => [d.fecha_programada, d.fecha_aplicacion])].filter(Boolean);
@@ -62,7 +64,7 @@ function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], 
     },
     async agregarConsulta(id, c, control) {
       const p = activo(id);
-      if (!p || consultaDe(p, c.id_consulta)) return false;
+      if (!desdeNacimiento(p, c.fecha_hora) || consultaDe(p, c.id_consulta)) return false;
       if (control && p.controles_crecimiento.some(x => x.id_control === control.id_control)) return false;
       p.consultas.push(clonar(c)); if (control) p.controles_crecimiento.push(clonar(control)); return true;
     },
@@ -84,17 +86,18 @@ function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], 
     },
     async agregarControl(id, ctl) {
       const p = activo(id);
-      if (!p || !consultaDe(p, ctl.id_consulta) || p.controles_crecimiento.some(x => x.id_control === ctl.id_control)) return false;
+      if (!desdeNacimiento(p, ctl.fecha) || !consultaDe(p, ctl.id_consulta) || p.controles_crecimiento.some(x => x.id_control === ctl.id_control)) return false;
       p.controles_crecimiento.push(clonar(ctl)); return true;
     },
     async programarDosis(id, d) {
       const p = activo(id);
-      if (!p || dosisDe(p, d.id_esquema) || p.esquema_vacunacion.some(x => x.id_vacuna === d.id_vacuna &&
+      if (!desdeNacimiento(p, d.fecha_programada) || dosisDe(p, d.id_esquema) || p.esquema_vacunacion.some(x => x.id_vacuna === d.id_vacuna &&
         x.numero_dosis === d.numero_dosis && x.estado !== 'Cancelada')) return false;
       p.esquema_vacunacion.push(clonar(d)); return true;
     },
     async aplicarDosis(id, idE, x) {
-      const d = activo(id) && dosisDe(activo(id), idE);
+      const p = activo(id);
+      const d = desdeNacimiento(p, x.fecha_aplicacion) && dosisDe(p, idE);
       if (!d || d.estado !== 'Pendiente') return false;
       Object.assign(d, clonar({ estado: 'Aplicada', fecha_aplicacion: x.fecha_aplicacion, lote: x.lote, id_medico: x.id_medico, aplicado_por: x.aplicado_por }));
       return true;

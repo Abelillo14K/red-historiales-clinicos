@@ -1,5 +1,5 @@
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Card, DataTable, ErrorState, LoadingState, StatusBadge, useCarga } from '@plataforma/ui/index.js';
+import { Card, DataTable, ErrorState, LoadingState, MetricStrip, SectionIntro, StatusBadge, useCarga } from '@plataforma/ui/index.js';
 import { fechaHora } from '@plataforma/formato.js';
 
 export function TablaAuditoria({ eventos, conPaciente }) {
@@ -21,9 +21,17 @@ export default function AuditoriaPaciente({ paciente }) {
   const { api } = useSesion();
   const { datos, cargando, error, recargar } = useCarga(() => api.auditoria({ id_paciente: paciente.id_paciente, limite: 200 }), [api, paciente]);
   return (
-    <Card titulo="Bitácora de accesos y cambios" descripcion="Quién consultó o modificó este historial y cuándo, incluidos los accesos denegados (colección bitacora_acceso)."
+    <>
+    <SectionIntro titulo="Trazabilidad del expediente" descripcion="Accesos y operaciones registrados con su usuario responsable." icono="auditoria" />
+    <MetricStrip items={[
+      { etiqueta: 'Eventos visibles', valor: datos?.length, icono: 'auditoria' },
+      { etiqueta: 'Accesos denegados visibles', valor: datos?.filter(e => e.resultado === 'DENEGADO').length, icono: 'llave' },
+      { etiqueta: 'Paciente', valor: paciente.id_paciente, icono: 'usuario' }
+    ]} />
+    <Card titulo="Bitácora de accesos y cambios" icono="auditoria" descripcion="Quién consultó o modificó este historial y cuándo, incluidos los accesos denegados (colección bitacora_acceso)."
       acciones={<button type="button" className="btn btn-sm" onClick={recargar}>Actualizar</button>}>
       {cargando ? <LoadingState /> : error ? <ErrorState error={error} onReintentar={recargar} /> : <TablaAuditoria eventos={datos} />}
     </Card>
+    </>
   );
 }

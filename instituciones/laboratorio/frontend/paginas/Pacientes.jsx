@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { ID_VISTA_PREVIA, useModulo } from '@plataforma/modulos/ModuloContext.jsx';
-import { Card, FilterBar, FormField, Icon, PageHeader, PendienteIntegracion, TablaPendiente } from '@plataforma/ui/index.js';
+import { Card, FilterBar, FormField, Icon, MetricStrip, PageHeader, PatientCallout, PendienteIntegracion, TablaPendiente } from '@plataforma/ui/index.js';
 
 // Columnas del listado común de pacientes (docs/GUIA_INTEGRACION_EQUIPO.md §5.1).
 const COLUMNAS = [
   { clave: 'paciente', titulo: 'Paciente' },
-  { clave: 'codigo', titulo: 'Código' },
+  { clave: 'codigo', titulo: 'Expediente' },
   { clave: 'nacimiento', titulo: 'Fecha de nacimiento' },
   { clave: 'sexo', titulo: 'Sexo' },
   { clave: 'estado', titulo: 'Estado' }
@@ -17,7 +17,7 @@ const COLUMNAS = [
 export function ListadoPacientes({ archivados }) {
   const { vistaPrevia, enlace } = useModulo();
   return (
-    <Card>
+    <Card titulo="Resultados de búsqueda" icono="buscar">
       <FilterBar etiqueta="Buscar pacientes">
         <FormField label="Buscar" className="search-field">
           {p => <div className="input-icon"><Icon name="buscar" /><input {...p} type="search" disabled placeholder="Nombre, apellido o código" /></div>}
@@ -42,10 +42,15 @@ export default function Pacientes() {
   const { puede, enlace } = useModulo();
   return (
     <>
-      <PageHeader titulo="Pacientes" descripcion="Registro y búsqueda de pacientes del Laboratorio Clínico."
+      <PageHeader titulo="Pacientes" descripcion="Busca primero: si la persona ya tiene expediente, abre sus solicitudes y resultados."
         acciones={puede('pacientes.registrar') && <Link className="btn btn-primary" to={enlace('/pacientes/nuevo')}><Icon name="mas" size={16} />Registrar paciente</Link>} />
       <PendienteIntegracion compacto />
+      <MetricStrip items={[
+        { etiqueta: 'Pacientes activos', icono: 'pacientes' }, { etiqueta: 'Solicitudes pendientes', icono: 'matraz' },
+        { etiqueta: 'Resultados emitidos', icono: 'resultado' }, { etiqueta: 'Historiales archivados', icono: 'archivo' }
+      ]} />
       <ListadoPacientes />
+      {puede('pacientes.registrar') && <PatientCallout to={enlace('/pacientes/nuevo')} />}
     </>
   );
 }

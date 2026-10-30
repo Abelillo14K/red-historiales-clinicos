@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Card, DataTable, EmptyState, ErrorState, Icon, LoadingState, PageHeader, StatCard, StatusBadge, useCarga } from '@plataforma/ui/index.js';
+import { Card, DataTable, EmptyState, ErrorState, Icon, LoadingState, PageHeader, SectionIntro, StatCard, StatusBadge, useCarga } from '@plataforma/ui/index.js';
 import { fecha, fechaHora, hoy } from '@plataforma/formato.js';
 
 const ACCESOS = [
@@ -24,6 +24,7 @@ export default function Panel() {
   return (
     <>
       <PageHeader titulo="Panel principal" descripcion={`${saludo()}, ${sesion.usuario}. Sesión como ${rolEtiqueta.toLowerCase()} en ${sesion.institucion_nombre}.`} />
+      <SectionIntro titulo="Centro Médico Pediátrico" icono="pediatria" descripcion="Pacientes, consultas, crecimiento y vacunación en un mismo espacio de trabajo." />
       <ErrorState error={error} onReintentar={recargar} />
       {cargando ? <LoadingState /> : datos && <>
         <section className={`stats${clinico ? ' stats-6' : ''}`} aria-label="Resumen">
@@ -43,7 +44,7 @@ export default function Panel() {
 
         <div className="grid grid-main">
           {clinico ? (
-            <Card titulo="Consultas recientes" descripcion="Las seis atenciones más recientes de historiales activos.">
+            <Card titulo="Consultas recientes" icono="consulta" descripcion="Las seis atenciones más recientes de historiales activos.">
               <DataTable titulo="Consultas recientes" vacio="Sin consultas registradas" claveFila={c => `${c.id_paciente}-${c.id_consulta}`}
                 filas={datos.consultas_recientes} columnas={[
                   { clave: 'p', titulo: 'Paciente', principal: true, render: c => <>
@@ -55,7 +56,7 @@ export default function Panel() {
                 ]} />
             </Card>
           ) : (
-            <Card titulo="Gestión administrativa" descripcion="Lo que su rol puede hacer en este centro.">
+            <Card titulo="Gestión administrativa" icono="pacientes" descripcion="Lo que su rol puede hacer en este centro.">
               <ul className="lista">
                 <li>Registrar pacientes nuevos con sus tutores responsables.</li>
                 <li>Actualizar datos generales y de contacto de los tutores.</li>
@@ -64,7 +65,7 @@ export default function Panel() {
               <p className="criteria">La información clínica (consultas, crecimiento y vacunación) está restringida al personal médico y a la administración. El servidor la protege aunque se intente acceder directamente.</p>
             </Card>
           )}
-          <Card titulo="Accesos rápidos">
+          <Card titulo="Accesos rápidos" icono="derecha">
             <div className="quick-actions">
               {accesos.map(a => (
                 <Link key={a.to} className="quick-action" to={a.to}>
@@ -78,7 +79,7 @@ export default function Panel() {
         </div>
 
         {clinico && (
-          <Card titulo="Próximas dosis pendientes" descripcion="Historiales activos, ordenadas por fecha programada. «Vencida» solo indica que la fecha programada ya pasó."
+          <Card titulo="Próximas dosis pendientes" icono="vacuna" descripcion="Historiales activos, ordenadas por fecha programada. «Vencida» solo indica que la fecha programada ya pasó."
             acciones={<Link to="/vacunacion" className="btn btn-sm">Ver todas</Link>}>
             {datos.proximas_dosis.length === 0 ? <EmptyState icono="vacuna" titulo="No hay dosis pendientes" /> : (
               <DataTable titulo="Próximas dosis" claveFila={d => `${d.id_paciente}-${d.id_esquema}`} filas={datos.proximas_dosis}

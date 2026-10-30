@@ -2,7 +2,7 @@
 // Punto de entrada: conecta el adaptador MongoDB a los casos de uso y expone la API.
 require('dotenv').config({ quiet: true });
 const { connect, client } = require('./db');
-const { crearRepositoriosMongo, asegurarIndices } = require('./adapters/mongo');
+const { crearRepositoriosMongo, asegurarIndices, exigirIndicesEsenciales } = require('./adapters/mongo');
 const { crearServicios } = require('./application');
 const { crearApp, devLoginHabilitado } = require('./app');
 const { secretoValido } = require('./security');
@@ -11,7 +11,9 @@ async function start() {
   if (!secretoValido()) throw Error('Configure JWT_SECRET de al menos 32 caracteres');
   const db = await connect();
   await db.command({ ping: 1 });
-  for (const r of await asegurarIndices(db)) {
+  const indices = await asegurarIndices(db);
+  exigirIndicesEsenciales(indices);
+  for (const r of indices) {
     if (!r.ok) console.warn(`[indices] ${r.coleccion} ${r.indice}: ${r.error}`);
   }
   const repos = crearRepositoriosMongo(client, db);

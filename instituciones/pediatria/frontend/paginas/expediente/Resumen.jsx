@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Alerta, BotonEnviar, Campo, Card, DataTable, Dialogo, KeyValue, StatusBadge, useEnvio, useNotificar } from '@plataforma/ui/index.js';
+import { Alerta, BotonEnviar, Campo, Card, DataTable, Dialogo, KeyValue, MetricStrip, SectionIntro, StatusBadge, useEnvio, useNotificar } from '@plataforma/ui/index.js';
 import TutorCampos, { tutorParaApi, tutorVacio, validarTutor } from '../../componentes/TutorCampos.jsx';
 import { edad, fecha, fechaHora, hoy } from '@plataforma/formato.js';
 
@@ -15,8 +15,15 @@ export default function Resumen({ paciente: p, recargar, editable }) {
 
   return (
     <>
+      <SectionIntro titulo="Datos generales y tutores" descripcion="Identificación, personas responsables y resumen del expediente." icono="pacientes" />
+      {clinico && <MetricStrip items={[
+        { etiqueta: 'Consultas', valor: p.consultas.length, icono: 'consulta' },
+        { etiqueta: 'Prescripciones', valor: recetas, icono: 'receta' },
+        { etiqueta: 'Dosis aplicadas', valor: dosis('Aplicada'), icono: 'vacuna', tono: 'ok' },
+        { etiqueta: 'Dosis pendientes', valor: dosis('Pendiente'), icono: 'calendario', tono: 'warn' }
+      ]} />}
       <div className={clinico ? 'grid grid-main' : 'grid'}>
-        <Card titulo="Datos generales" descripcion="Información administrativa del historial."
+        <Card titulo="Datos generales" icono="usuario" descripcion="Información administrativa del historial."
           acciones={puedeEditar && <button type="button" className="btn btn-sm" onClick={() => setEditando(true)}>Editar datos</button>}>
           <KeyValue items={[
             ['Código', <code key="c">{p.id_paciente}</code>],
@@ -31,7 +38,7 @@ export default function Resumen({ paciente: p, recargar, editable }) {
           ]} />
         </Card>
         {clinico && (
-          <Card titulo="Resumen clínico" descripcion="Totales de este historial; el detalle está en cada pestaña.">
+          <Card titulo="Resumen clínico" icono="consulta" descripcion="Totales de este historial; el detalle está en cada pestaña.">
             <KeyValue items={[
               ['Consultas', p.consultas.length],
               ['Prescripciones', recetas],
@@ -44,7 +51,7 @@ export default function Resumen({ paciente: p, recargar, editable }) {
         )}
       </div>
 
-      <Card titulo="Tutores / responsables" descripcion={puede('pacientes.editar') ? undefined : 'El DPI se muestra enmascarado: es un dato restringido que su rol no necesita.'}
+      <Card titulo="Tutores / responsables" icono="pacientes" descripcion={puede('pacientes.editar') ? undefined : 'El DPI se muestra enmascarado: es un dato restringido que su rol no necesita.'}
         acciones={puedeEditar && <button type="button" className="btn btn-sm" onClick={() => setTutor({ modo: 'nuevo', datos: tutorVacio(false) })}>Agregar tutor</button>}>
         <DataTable titulo="Tutores" vacio="Sin tutores registrados" filas={p.tutores || []} claveFila={t => t.id_tutor} columnas={[
           { clave: 'nombre', titulo: 'Nombre', principal: true, render: t => <><b>{t.nombres} {t.apellidos}</b>{t.es_principal && <> <StatusBadge tono="info">Principal</StatusBadge></>}</> },

@@ -15,7 +15,7 @@ const escaparRegex = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function traducir(err) {
   if (err?.code === 11000) return conflict('Identificador duplicado');
   if (err?.code === 121) {
-    return new DomainError('Documento rechazado por el validador $jsonSchema de MongoDB', 422, 'VALIDACION_MONGODB');
+    return new DomainError('Documento rechazado por el validador $jsonSchema de MongoDB', 422, 'VALIDACION_MOTOR');
   }
   return err;
 }
@@ -57,7 +57,8 @@ function crearPacienteRepository(db) {
       return `P${String((ultimo?.n || 0) + 1).padStart(3, '0')}`;
     },
 
-    buscarDuplicado: ({ nombres, apellidos, fecha_nacimiento }) => col.findOne({
+    buscarDuplicado: ({ nombres, apellidos, fecha_nacimiento }, excluirId) => col.findOne({
+      ...(excluirId ? { id_paciente: { $ne: excluirId } } : {}),
       nombres: { $regex: `^${escaparRegex(nombres)}$`, $options: 'i' },
       apellidos: { $regex: `^${escaparRegex(apellidos)}$`, $options: 'i' },
       fecha_nacimiento
@@ -109,11 +110,11 @@ function crearPacienteRepository(db) {
 
     // Una nueva fecha de nacimiento no puede quedar después de ningún registro fechado
     // del historial; la condición va en el filtro para que no la adelante otra escritura.
-    actualizarDatos: seguro(async (id, campos) => {
+    actualizarDatos: seguro(async (id, campos, identidadPrevia = {}) => {
       const n = campos.fecha_nacimiento;
       const sinAnteriores = n ? Object.fromEntries(['consultas.fecha_hora', 'controles_crecimiento.fecha',
         'esquema_vacunacion.fecha_programada', 'esquema_vacunacion.fecha_aplicacion'].map(c => [c, { $not: { $lt: n } }])) : {};
-      return aplicado(await col.updateOne(activo(id, sinAnteriores), conEvento({ $set: campos }), ses()));
+      return aplicado(await col.updateOne(activo(id, { ...identidadPrevia, ...sinAnteriores }), conEvento({ $set: campos }), ses()));
     }),
 
     // Concurrencia optimista: solo reemplaza si los tutores no cambiaron desde la lectura.
@@ -121,7 +122,9 @@ function crearPacienteRepository(db) {
       aplicado(await col.updateOne(activo(id, { tutores: previos }), conEvento({ $set: { tutores: nuevos, ultima_actualizacion: traza } }), ses()))),
 
     agregarConsulta: seguro(async (id, consulta, control) => {
-      const filtro = activo(id, { 'consultas.id_consulta': { $ne: consulta.id_consulta } });
+      const filtro = activo(id, {
+        fecha_nacimiento: { $lte: consulta.fecha_hora }, 'consultas.id_consulta': { $ne: consulta.id_consulta }
+      });
       const push = { consultas: consulta };
       if (control) {
         filtro['controles_crecimiento.id_control'] = { $ne: control.id_control };
@@ -149,10 +152,11 @@ function crearPacienteRepository(db) {
       }), conEvento({ $push: { 'consultas.$.prescripciones': rx } }), ses()))),
 
     agregarControl: seguro(async (id, c) => aplicado(await col.updateOne(
-      activo(id, { 'consultas.id_consulta': c.id_consulta, 'controles_crecimiento.id_control': { $ne: c.id_control } }), conEvento({ $push: { controles_crecimiento: c } }), ses()))),
+      activo(id, { fecha_nacimiento: { $lte: c.fecha }, 'consultas.id_consulta': c.id_consulta, 'controles_crecimiento.id_control': { $ne: c.id_control } }), conEvento({ $push: { controles_crecimiento: c } }), ses()))),
 
     programarDosis: seguro(async (id, d) => aplicado(await col.updateOne(
       activo(id, {
+        fecha_nacimiento: { $lte: d.fecha_programada },
         'esquema_vacunacion.id_esquema': { $ne: d.id_esquema },
         esquema_vacunacion: {
           $not: { $elemMatch: { id_vacuna: d.id_vacuna, numero_dosis: d.numero_dosis, estado: { $ne: 'Cancelada' } } }
@@ -161,7 +165,7 @@ function crearPacienteRepository(db) {
 
     // El filtro estado:'Pendiente' impide la doble aplicación aunque lleguen dos peticiones a la vez.
     aplicarDosis: seguro(async (id, idEsquema, x) => aplicado(await col.updateOne(
-      activo(id, { esquema_vacunacion: { $elemMatch: { id_esquema: idEsquema, estado: 'Pendiente' } } }), conEvento({
+      activo(id, { fecha_nacimiento: { $lte: x.fecha_aplicacion }, esquema_vacunacion: { $elemMatch: { id_esquema: idEsquema, estado: 'Pendiente' } } }), conEvento({
         $set: {
           'esquema_vacunacion.$.estado': 'Aplicada',
           'esquema_vacunacion.$.fecha_aplicacion': x.fecha_aplicacion,
