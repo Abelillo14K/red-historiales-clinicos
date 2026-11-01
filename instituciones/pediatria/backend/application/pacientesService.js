@@ -25,8 +25,13 @@ function crearPacientesService({ pacientes }, comun) {
   // Misma comparación que buscarDuplicado: sin distinguir mayúsculas.
   const identidadDe = p => ({ nombres: p.nombres, apellidos: p.apellidos, fecha_nacimiento: p.fecha_nacimiento });
   const claveDuplicado = d => JSON.stringify([d.nombres.toLowerCase(), d.apellidos.toLowerCase(), d.fecha_nacimiento.toISOString()]);
+  // No es JSON de un arreglo, así que no coincide con ninguna clave de identidad.
+  const CLAVE_ID_AUTOMATICO = 'id_paciente_automatico';
 
   async function registrar(actor, datos) {
+    if (datos.id_paciente && R.esIdPacienteReservado(datos.id_paciente)) {
+      throw E.invalid('Los identificadores "P" seguidos de números los asigna el sistema: omita id_paciente o use otro formato');
+    }
     R.noEnFuturo(datos.fecha_nacimiento, 'fecha_nacimiento');
     const tutores = normalizarTutores(datos.tutores);
     R.validarTutores(tutores);
@@ -38,25 +43,35 @@ function crearPacientesService({ pacientes }, comun) {
     if (existente) {
       throw E.conflict(`Ya existe un paciente con los mismos nombres, apellidos y fecha de nacimiento (${existente.id_paciente})`);
     }
-    // Con id automático se reintenta si otra petición tomó el mismo correlativo.
-    for (let intento = 0; intento < 5; intento++) {
-      const id_paciente = datos.id_paciente || await pacientes.siguienteId();
+    const crearCon = async id_paciente => {
       const doc = {
         id_paciente, nombres: datos.nombres, apellidos: datos.apellidos,
         fecha_nacimiento: datos.fecha_nacimiento, sexo: datos.sexo, estado_historial: 'Activo',
         tutores, consultas: [], controles_crecimiento: [], esquema_vacunacion: [],
         fecha_registro: new Date(), registrado_por: traza(actor)
       };
-      try {
-        await escribir(actor, 'CREAR_PACIENTE', { id_paciente, recurso: 'pacientes', referencia: id_paciente },
-          async () => { await pacientes.crear(doc); return true; });
-        return { id_paciente };
-      } catch (e) {
-        if (datos.id_paciente || e.code !== 'CONFLICTO') {
-          if (e.code === 'CONFLICTO') throw E.conflict(`Ya existe el paciente ${id_paciente}`);
+      await escribir(actor, 'CREAR_PACIENTE', { id_paciente, recurso: 'pacientes', referencia: id_paciente },
+        async () => { await pacientes.crear(doc); return true; });
+      return { id_paciente };
+    };
+    if (datos.id_paciente) {
+      try { return await crearCon(datos.id_paciente); } catch (e) {
+        if (e.code === 'CONFLICTO') throw E.conflict(`Ya existe el paciente ${datos.id_paciente}`);
+        throw e;
+      }
+    }
+    // Id automático: en esta instancia las altas toman el correlativo de una en una;
+    // si otra instancia insertó el mismo número (índice único), se recalcula hasta 5 veces.
+    // Una secuencia agotada (siguienteId) no se reintenta.
+    for (let intento = 0; intento < 5; intento++) {
+      const r = await enExclusion(CLAVE_ID_AUTOMATICO, async () => {
+        const id_paciente = await pacientes.siguienteId();
+        try { return await crearCon(id_paciente); } catch (e) {
+          if (e.code === 'CONFLICTO') return null;
           throw e;
         }
-      }
+      });
+      if (r) return r;
     }
     throw E.conflict('No fue posible asignar un identificador; vuelva a intentarlo');
   }

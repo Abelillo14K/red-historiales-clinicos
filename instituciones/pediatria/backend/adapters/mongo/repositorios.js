@@ -4,6 +4,7 @@
 // condicional: la condición y el cambio se evalúan atómicamente en el
 // documento del paciente, sin ventanas de carrera entre lectura y escritura.
 const { DomainError, conflict } = require('../../domain/errors');
+const { ID_PACIENTE_AUTOMATICO, siguienteIdPaciente } = require('../../domain/reglas');
 const { opcionesSesion: ses, tomarEventoPendiente } = require('./unidadDeTrabajo');
 
 const SIN_ID = { _id: 0 };
@@ -48,13 +49,14 @@ function crearPacienteRepository(db) {
       await col.insertOne(evento ? { ...p, bitacora_pendiente: [evento] } : { ...p }, ses());
     }),
 
+    // Solo cuentan los ids con forma automática (P + 1..9 dígitos): la conversión
+    // cabe siempre en int32 y un id heredado más largo no puede desbordarla.
     async siguienteId() {
       const [ultimo] = await col.aggregate([
-        { $match: { id_paciente: { $regex: '^P[0-9]+$' } } },
-        { $project: { n: { $toInt: { $substrCP: ['$id_paciente', 1, 18] } } } },
-        { $sort: { n: -1 } }, { $limit: 1 }
+        { $match: { id_paciente: { $regex: ID_PACIENTE_AUTOMATICO.source } } },
+        { $group: { _id: null, n: { $max: { $toInt: { $substrCP: ['$id_paciente', 1, 9] } } } } }
       ], ses()).toArray();
-      return `P${String((ultimo?.n || 0) + 1).padStart(3, '0')}`;
+      return siguienteIdPaciente(ultimo?.n || 0);
     },
 
     buscarDuplicado: ({ nombres, apellidos, fecha_nacimiento }, excluirId) => col.findOne({

@@ -30,7 +30,9 @@ describe('Pacientes y tutores', () => {
   });
 
   test('rechaza duplicados por id y por datos personales', async () => {
-    const porId = await api('POST', '/api/pacientes', { rol: 'secretaria', body: nuevoPaciente({ id_paciente: 'P001', nombres: 'Otro' }) });
+    // Los ids "P" + dígitos son automáticos (reservados); un id manual repetido de otro formato da 409.
+    assert.equal((await api('POST', '/api/pacientes', { rol: 'secretaria', body: nuevoPaciente({ id_paciente: 'EXT-001', nombres: 'Externo' }) })).status, 201);
+    const porId = await api('POST', '/api/pacientes', { rol: 'secretaria', body: nuevoPaciente({ id_paciente: 'EXT-001', nombres: 'Otro' }) });
     assert.equal(porId.status, 409);
     const porDatos = await api('POST', '/api/pacientes', { rol: 'secretaria', body: nuevoPaciente() });
     assert.equal(porDatos.status, 409);
@@ -329,7 +331,8 @@ describe('Contrato de errores común (docs/GUIA_INTEGRACION_EQUIPO.md §4)', () 
       [await api('POST', '/api/pacientes', { rol: 'secretaria', body: { nombres: '' } }), 400, 'VALIDACION'],
       [await api('POST', '/api/pacientes', { rol: 'secretaria', raw: '{"mal' }), 400, 'VALIDACION'],
       [await api('GET', '/api/pacientes/P%24', { rol: 'medico' }), 400, 'VALIDACION'],
-      [await api('POST', '/api/pacientes', { rol: 'secretaria', body: nuevoPaciente({ id_paciente: 'P001', nombres: 'Otro' }) }), 409, 'CONFLICTO']
+      [await api('POST', '/api/pacientes', { rol: 'secretaria', body: nuevoPaciente({ id_paciente: 'EXT-001', nombres: 'Otro' }) }), 409, 'CONFLICTO'],
+      [await api('POST', '/api/pacientes', { rol: 'secretaria', body: nuevoPaciente({ id_paciente: 'P001', nombres: 'Otro' }) }), 400, 'REGLA_NEGOCIO']
     ];
     for (const [r, status, codigo] of casos) {
       assert.equal(r.status, status, `${codigo}: ${JSON.stringify(r.datos)}`);

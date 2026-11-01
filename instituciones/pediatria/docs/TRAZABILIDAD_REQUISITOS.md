@@ -11,7 +11,7 @@ Auditoría del 24/10/2026 contra los documentos oficiales, leídos directamente:
 
 **Responsable.** **Individual**: módulo Centro Médico Pediátrico con MongoDB (este repositorio). **Grupal**: otras instituciones, autenticación compartida definitiva, comparación conjunta.
 
-**Evidencia.** **U** = pruebas con el doble en memoria · **I** = `instituciones/pediatria/tests/mongo.integration.test.js` (MongoDB real desechable, standalone y replica set) · **E** = `npm run test:e2e` (Edge real + API + MongoDB desechable, 27 pasos) · **R** = verificación histórica de solo lectura contra `centro_pediatrico_db` el 24/10/2026 (`npm run db:validadores`: 4 colecciones con validador de Fase II y 0 documentos que lo incumplen). Verificación del 29/10/2026: **134/134 pruebas** (`npm test`: plataforma 30 + Pediatría 104), **27/27 pasos E2E** y **12/12 pasos de vista previa**. Esta verificación utiliza bases desechables; no actualiza la evidencia histórica R.
+**Evidencia.** **U** = pruebas con el doble en memoria · **I** = `instituciones/pediatria/tests/mongo.integration.test.js` (MongoDB real desechable, standalone y replica set) · **E** = `npm run test:e2e` (Edge real + API + MongoDB desechable, 27 pasos) · **R** = verificación histórica de solo lectura contra `centro_pediatrico_db` el 24/10/2026 (`npm run db:validadores`: 4 colecciones con validador de Fase II y 0 documentos que lo incumplen). Verificación del 31/10/2026, tras corregir D-01: **148/148 pruebas** (`npm test`: plataforma 30 + Pediatría 118), **27/27 pasos E2E** y **12/12 pasos de vista previa**. Esta verificación utiliza bases desechables; no actualiza la evidencia histórica R.
 
 ## 1. Requisitos de la Entrega II [P]
 
@@ -67,6 +67,7 @@ Auditoría del 24/10/2026 contra los documentos oficiales, leídos directamente:
 | Un cambio de nacimiento intercalado con una escritura clínica podía dejar una fecha incompatible | Filtros atómicos de nacimiento vigente en consulta, crecimiento, programación y aplicación de vacunas | U e I: cuatro carreras deterministas; sin escritura clínica parcial ni evento de éxito |
 | Panel y pendientes no registraban lectura; una lectura podía devolverse con la bitácora caída | Se auditan panel, listado y pendientes; lecturas y acceso de desarrollo responden `503` sin datos/token si no se persiste el evento | U (HTTP y recuperación), I (fallo real de validador de bitácora), E (filtros de nuevas acciones) |
 | La API podía arrancar aunque fallara un índice esencial | Los índices únicos son indispensables para el arranque; `db:indices` devuelve error ante cualquier fallo | U (clasificación) e I (duplicado que impide crear índice, sin borrar documentos) |
+| D-01 (auditoría del 31/10/2026): un `id_paciente` manual de 10 o más dígitos desbordaba `$toInt` y dejaba todas las altas automáticas en 500; con altas simultáneas se agotaban los reintentos | La secuencia solo cuenta `P` + 1–9 dígitos; la forma `P` + dígitos queda reservada al sistema (id manual → 400); secuencia agotada → 409; en una instancia las altas automáticas toman el correlativo de una en una | U e I `identificador-paciente.test.js` (14 pruebas; mismo resultado en el doble y en MongoDB desechable) |
 
 ## 4. Pendientes que no son del módulo individual
 

@@ -11,7 +11,7 @@
 const PUERTOS = {
   PacienteRepository: [
     'crear',               // (paciente) -> void; lanza conflicto si el id existe
-    'siguienteId',         // () -> 'P###'
+    'siguienteId',         // () -> 'P###' (solo cuenta ids P + 1..9 dígitos; secuencia agotada -> conflicto)
     'buscarDuplicado',     // ({nombres, apellidos, fecha_nacimiento}, excluirId?) -> paciente|null
     'listar',              // ({texto, estado, sexo, limite, saltar, buscarDpi}) -> {items, total}
     'obtener',             // (id) -> historial completo|null

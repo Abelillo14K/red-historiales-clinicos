@@ -2,6 +2,7 @@
 // Doble de prueba: implementa los puertos en memoria con la misma semántica
 // condicional que el adaptador MongoDB. Nunca toca centro_pediatrico_db.
 const { conflict } = require('../../backend/domain/errors');
+const { ID_PACIENTE_AUTOMATICO, siguienteIdPaciente } = require('../../backend/domain/reglas');
 const clonar = x => structuredClone(x);
 
 function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], perimetroOpcional = true } = {}) {
@@ -18,8 +19,8 @@ function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], 
   const repoPacientes = {
     async crear(p) { if (P.has(p.id_paciente)) throw conflict('Identificador duplicado'); P.set(p.id_paciente, clonar(p)); },
     async siguienteId() {
-      const n = Math.max(0, ...[...P.keys()].filter(k => /^P\d+$/.test(k)).map(k => Number(k.slice(1))));
-      return `P${String(n + 1).padStart(3, '0')}`;
+      const n = Math.max(0, ...[...P.keys()].filter(k => ID_PACIENTE_AUTOMATICO.test(k)).map(k => Number(k.slice(1))));
+      return siguienteIdPaciente(n);
     },
     async buscarDuplicado({ nombres, apellidos, fecha_nacimiento }, excluirId) {
       const x = [...P.values()].find(p => p.id_paciente !== excluirId && p.nombres.toLowerCase() === nombres.toLowerCase() &&

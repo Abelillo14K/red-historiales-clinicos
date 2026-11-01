@@ -76,6 +76,11 @@ Notas:
 
 - Exactamente **un tutor principal**; sin `id_tutor` ni DPI repetidos en un paciente.
 - Paciente duplicado (mismos nombres, apellidos y fecha de nacimiento) en alta o edición → 409; se excluye el propio registro al editar.
+- Identificador del paciente:
+  - El automático es `P` + correlativo de hasta 9 dígitos (`P001`…`P999999999`). Se calcula con el mayor correlativo de esa forma; los ids heredados más largos se ignoran.
+  - Dentro de una instancia, las altas toman el correlativo de una en una. Entre instancias, el índice único `id_paciente` impide la repetición, y el alta se recalcula hasta 5 veces.
+  - Un id manual con la forma `P` + dígitos se rechaza (400), porque esa forma es del sistema. Un id manual de otro formato repetido → 409.
+  - Si la secuencia se agota, la respuesta es 409, sin crear el paciente.
 - Fechas de consulta, control, receta y aplicación: **no futuras** (tolerancia de 5 min) ni **anteriores al nacimiento**; la receta no puede ser anterior a su consulta.
 - Un control de crecimiento debe asociarse a una **consulta existente** del paciente.
 - Una vacuna y número de dosis solo puede estar **programada o aplicada una vez** (una cancelada permite reprogramar).

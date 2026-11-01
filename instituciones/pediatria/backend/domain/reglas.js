@@ -13,6 +13,23 @@ function nuevoId(prefijo) {
   return `${prefijo}-${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`;
 }
 
+// Identificadores automáticos de paciente: "P" + correlativo de hasta 9 dígitos
+// (cabe en un entero de 32 bits, sin desbordar $toInt en MongoDB). La forma
+// "P" + dígitos queda reservada al sistema: un id manual no puede usarla, así
+// que ningún alta manual adelanta, agota ni ocupa la secuencia automática.
+// Los ids heredados con más de 9 dígitos se ignoran al calcular la secuencia.
+const ID_PACIENTE_AUTOMATICO = /^P\d{1,9}$/;
+const MAX_CORRELATIVO_PACIENTE = 999999999;
+const esIdPacienteReservado = id => /^P\d+$/i.test(id);
+
+// ultimo: mayor correlativo existente entre los ids que cumplen ID_PACIENTE_AUTOMATICO.
+function siguienteIdPaciente(ultimo) {
+  if (ultimo >= MAX_CORRELATIVO_PACIENTE) {
+    throw E.conflict('Se agotó la secuencia automática de identificadores de paciente; contacte al administrador');
+  }
+  return `P${String(ultimo + 1).padStart(3, '0')}`;
+}
+
 function validarTutores(tutores) {
   const principales = tutores.filter(t => t.es_principal).length;
   if (principales !== 1) throw E.invalid('Debe existir exactamente un tutor principal');
@@ -63,6 +80,7 @@ function edadEnMeses(fechaNacimiento, fecha) {
 }
 
 module.exports = {
-  ESTADOS_HISTORIAL, ESTADOS_DOSIS, nuevoId, validarTutores, noEnFuturo,
+  ESTADOS_HISTORIAL, ESTADOS_DOSIS, nuevoId, ID_PACIENTE_AUTOMATICO, esIdPacienteReservado, siguienteIdPaciente,
+  validarTutores, noEnFuturo,
   noAntesDeNacimiento, exigirActivo, dosisDuplicada, edadEnMeses, enmascararDpi
 };

@@ -60,6 +60,7 @@ Ninguna prueba toca `centro_pediatrico_db`: las de integración y de interfaz in
 | `tests/mongo.integration.test.js` | **MongoDB real**: validador instalado y de Fase II (respaldo, aplicación, reversión), rechazo de escrituras directas inválidas, flujo clínico completo, datos heredados, outbox con bitácora caída, archivado; transacciones reales en replica set |
 | `tests/dominio.test.js`, `tests/schema.test.js` | Reglas de dominio, contratos de puertos y esquemas Zod |
 | `tests/hallazgos-auditoria.test.js` | Regresión de los cinco hallazgos de la auditoría técnica: `/auth/dev-login` solo local, altas concurrentes del mismo paciente, fecha de nacimiento frente a la vacunación registrada, regla temporal de prescripciones y auditoría de altas de catálogo |
+| `tests/identificador-paciente.test.js` | Identificador automático `P###` (defecto D-01): ids manuales válidos, duplicados (409), ids reservados `P` + dígitos (400), ids inválidos, ids heredados largos, secuencia agotada (409), altas simultáneas y dos instancias; mismo resultado en el doble y en MongoDB desechable |
 | `tests/integridad-auditoria.test.js` | Duplicados al editar, carreras alta/edición y ediciones parciales, nacimiento concurrente con consultas/crecimiento/vacunación, lecturas auditadas, error 503 al fallar la bitácora e índices esenciales; carreras repetidas contra MongoDB standalone y replica set en `mongo.integration.test.js` |
 | `tests/e2e/flujo-ui.e2e.js` | Interfaz real: inicio de sesión, panel, búsqueda, registro, edición, consulta, diagnóstico, tratamiento, receta, crecimiento y gráficas, vacunación, archivado, auditoría, permisos (también rechazo directo del backend), migas de pan, institución, motor oculto, persistencia en MongoDB, tema claro predeterminado, oscuro y según el sistema (persistentes y sin parpadeo), teclado y foco visible, menú contraído, menú de usuario con teclado y dentro de la ventana, panel de seis indicadores según el ancho, escritorio 1920 px, portátil 1366 px, tablet 820 px y móvil 390 px (claro y oscuro) sin desbordes, caída de la API, accesibilidad básica y **contraste WCAG AA medido** en claro y oscuro. Capturas comparativas en `tests/e2e/capturas/` |
 
@@ -84,7 +85,7 @@ Todas las rutas `/api/*` requieren `Authorization: Bearer <JWT>`. **M** = médic
 | GET | `/api/sesion` | M S A | Usuario, rol, institución, motor, expiración y `capacidades` |
 | GET | `/api/panel` | M S A | Contadores (S solo ve pacientes; dosis pendientes solo de historiales activos), consultas recientes, próximas dosis |
 | GET | `/api/pacientes?q=&estado=&sexo=&limite=&pagina=` | M S A | Listado y búsqueda (`Archivado`/`Todos` solo A; DPI solo S y A) |
-| POST | `/api/pacientes` | S A | Registrar paciente con tutores (id automático `P###`) |
+| POST | `/api/pacientes` | S A | Registrar paciente con tutores (id automático `P###`; un `id_paciente` manual no puede tener la forma `P` + dígitos, reservada al sistema → 400) |
 | GET | `/api/pacientes/:id` | M A | Historial completo (archivados solo A; DPI enmascarado para M) |
 | GET | `/api/pacientes/:id/administrativo` | M S A | Datos generales y tutores, sin información clínica |
 | PATCH | `/api/pacientes/:id` | S A | Actualizar nombres, apellidos, fecha de nacimiento o sexo |
