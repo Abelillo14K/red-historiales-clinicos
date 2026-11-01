@@ -2,7 +2,7 @@
 // Módulos institucionales preparados para el equipo (hospital, odontología, laboratorio)
 // y vista previa de desarrollo. Mientras un módulo NO esté registrado en registro.js
 // (pendiente de integración) no declara operaciones, no hace peticiones ni simula guardar.
-// Al registrarlo, sus pruebas pasan a tests/frontend-modulos.test.js (docs/FRONTEND_EQUIPO.md §7)
+// Al registrarlo, sus pruebas pasan a tests/frontend-modulos.test.js (docs/GUIA_EQUIPO.md §7.4)
 // y estas comprobaciones dejan de aplicarle automáticamente.
 const { test, before, describe } = require('node:test');
 const assert = require('node:assert/strict');

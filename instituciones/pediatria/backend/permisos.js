@@ -3,7 +3,7 @@
 //  - la autorización de cada ruta de la API (src/api/routes), y
 //  - la navegación del frontend (GET /api/sesion devuelve los permisos del rol).
 // Los nombres comunes (pacientes.*, historial.*, clinico.*, auditoria.*, catalogos.*)
-// forman parte del contrato compartido entre instituciones (docs/GUIA_INTEGRACION_EQUIPO.md);
+// forman parte del contrato compartido entre instituciones (docs/GUIA_EQUIPO.md);
 // cada institución decide qué roles los tienen.
 const PERMISOS_POR_ROL = Object.freeze({
   medico: ['panel.ver', 'pacientes.listar', 'pacientes.ver_administrativo', 'historial.leer', 'clinico.escribir', 'catalogos.ver'],

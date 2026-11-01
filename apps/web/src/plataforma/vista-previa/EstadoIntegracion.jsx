@@ -84,7 +84,7 @@ export default function EstadoIntegracion() {
       <div className="integration-grid">
         {catalogo.map(item => <TarjetaInstitucion key={item.carpeta} item={item} />)}
       </div>
-      <Card titulo="De pendiente a conectado" descripcion="Pasos detallados en docs/FRONTEND_EQUIPO.md §7." className="mt-4">
+      <Card titulo="De pendiente a conectado" descripcion="Pasos detallados en docs/GUIA_EQUIPO.md §7.4." className="mt-4">
         <ol className="lista">
           <li>El backend de la institución atiende <code>GET /api/sesion</code> y sus rutas, con su propio motor.</li>
           <li>Declarar en <code>api.js</code> las operaciones reales sobre el cliente HTTP común.</li>

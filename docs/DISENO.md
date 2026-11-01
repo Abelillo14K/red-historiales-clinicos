@@ -1,6 +1,6 @@
 # Sistema visual — Red Clínica Integrada
 
-La interfaz toma como referencia las seis pantallas de **Historial Clínico — Mockup.pdf**: acceso, búsqueda de pacientes, registro, expediente, consulta y archivado.
+La interfaz toma como referencia las seis pantallas del mockup de diseño del equipo (**Historial Clínico — Mockup.pdf**, que se comparte fuera del repositorio): acceso, búsqueda de pacientes, registro, expediente, consulta y archivado.
 
 ## 1. Organización
 

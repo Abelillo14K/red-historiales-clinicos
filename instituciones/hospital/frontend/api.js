@@ -3,7 +3,7 @@
 // ESTADO: sin operaciones. No se declaran llamadas a endpoints que todavía no existen;
 // las páginas muestran el estado «pendiente de integración» mientras tanto.
 //
-// Cómo conectar (docs/FRONTEND_EQUIPO.md §5): declare cada operación sobre el cliente
+// Cómo conectar (docs/GUIA_EQUIPO.md §7.3): declare cada operación sobre el cliente
 // común `http` (agrega el token, cierra la sesión ante 401 y convierte los errores en
 // ApiError { status, codigo, detalles }). Ejemplo, cuando la ruta ya exista:
 //
@@ -16,7 +16,7 @@
 //     };
 //   }
 //
-// Operaciones comunes esperadas (rutas SUGERIDAS en docs/GUIA_INTEGRACION_EQUIPO.md §5.1;
+// Operaciones comunes esperadas (rutas SUGERIDAS en docs/GUIA_EQUIPO.md §5.1;
 // el backend del Hospital decide las definitivas y su persistencia interna):
 //   pacientes.listar(params)      GET   /api/pacientes?q=&estado=&limite=&pagina=  → { items, total }
 //   pacientes.crear(datos)        POST  /api/pacientes                             → 201 { id_paciente }

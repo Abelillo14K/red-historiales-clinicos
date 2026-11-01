@@ -1,6 +1,6 @@
 'use strict';
 // Autenticación JWT y autorización por roles.
-// Contrato de token compartido con la plataforma general (ver docs/GUIA_INTEGRACION_EQUIPO.md):
+// Contrato de token compartido con la plataforma general (ver docs/GUIA_EQUIPO.md):
 //   { sub, rol: medico|secretaria|administrador, institucion: 'centro_pediatrico', exp }
 // firmado con HS256, issuer JWT_ISSUER y audience JWT_AUDIENCE.
 const jwt = require('jsonwebtoken');

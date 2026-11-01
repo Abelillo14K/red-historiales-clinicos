@@ -59,7 +59,7 @@ export function crearHttp({ base = '', obtenerToken = () => null, alNoAutorizado
   };
 }
 
-// Endpoints comunes de la plataforma (contrato compartido, docs/GUIA_INTEGRACION_EQUIPO.md).
+// Endpoints comunes de la plataforma (contrato compartido, docs/GUIA_EQUIPO.md).
 export function crearApiPlataforma(http) {
   return {
     config: () => http.get('/auth/config'),

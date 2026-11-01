@@ -18,7 +18,6 @@
     "db:diagnostico": "node instituciones/pediatria/scripts/respaldo/diagnostico.js",
     "db:respaldo": "node instituciones/pediatria/scripts/respaldo/respaldar.js",
     "db:restaurar-aislado": "node instituciones/pediatria/scripts/respaldo/restaurar-aislado.js",
-    "seed": "node instituciones/pediatria/scripts/seed.js",
     "token:dev": "node instituciones/pediatria/scripts/dev-token.js",
     "test:e2e": "npm run build && node instituciones/pediatria/tests/e2e/flujo-ui.e2e.js",
     "test:e2e:vista-previa": "node tests/e2e/vista-previa.e2e.js",

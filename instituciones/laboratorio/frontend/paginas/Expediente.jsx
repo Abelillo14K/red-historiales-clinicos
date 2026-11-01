@@ -5,7 +5,7 @@ import EncabezadoExpediente from '../componentes/EncabezadoExpediente.jsx';
 import VisorResultado from '../componentes/VisorResultado.jsx';
 
 // Secciones del expediente del laboratorio. «Atenciones relacionadas» usa las columnas
-// de la consulta común (docs/GUIA_INTEGRACION_EQUIPO.md §5.1); las demás son orientativas.
+// de la consulta común (docs/GUIA_EQUIPO.md §5.1); las demás son orientativas.
 const PESTANAS = [
   { clave: 'resumen', titulo: 'Datos generales' },
   { clave: 'solicitudes', titulo: 'Solicitudes', accion: 'Nueva solicitud', descripcion: 'Exámenes solicitados para el paciente.',

@@ -2,7 +2,7 @@
 // ESTADO: preparado visualmente, PENDIENTE de integración. No está en registro.js, así que
 // la aplicación real no lo carga. Se revisa en la vista previa de desarrollo:
 //   npm run web:dev  →  http://localhost:5173/vista-previa/clinica_odontologica
-// Guía: docs/FRONTEND_EQUIPO.md · instituciones/odontologia/README.md.
+// Guía: docs/GUIA_EQUIPO.md · instituciones/odontologia/README.md.
 import { crearApiOdontologia } from './api.js';
 import presentacion from './presentacion.js';
 
@@ -24,7 +24,7 @@ export default {
   roles: {},
   crearApi: crearApiOdontologia,
 
-  // Permisos: los comunes de la plataforma (docs/GUIA_INTEGRACION_EQUIPO.md §9) y, para
+  // Permisos: los comunes de la plataforma (docs/GUIA_EQUIPO.md §9) y, para
   // operaciones exclusivas, el prefijo `odontologia.` (propuesta a confirmar con su backend).
   rutas: [
     { path: '', permiso: 'panel.ver', cargar: () => import('./paginas/Panel.jsx') },

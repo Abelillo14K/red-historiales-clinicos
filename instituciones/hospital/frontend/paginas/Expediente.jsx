@@ -4,7 +4,7 @@ import { Card, ContextPanel, Icon, KeyValue, PendienteIntegracion, SectionIntro,
 import EncabezadoExpediente from '../componentes/EncabezadoExpediente.jsx';
 
 // Secciones del expediente. Columnas tomadas del contrato común de operaciones
-// (docs/GUIA_INTEGRACION_EQUIPO.md §5.1); el backend del Hospital puede ampliarlas.
+// (docs/GUIA_EQUIPO.md §5.1); el backend del Hospital puede ampliarlas.
 const PESTANAS = [
   { clave: 'resumen', titulo: 'Datos generales' },
   { clave: 'consultas', titulo: 'Consultas', accion: 'Registrar consulta', descripcion: 'Atenciones del paciente, de la más reciente a la más antigua.',

@@ -320,7 +320,7 @@ describe('Catálogos, panel y sesión', () => {
   });
 });
 
-describe('Contrato de errores común (docs/GUIA_INTEGRACION_EQUIPO.md §4)', () => {
+describe('Contrato de errores común (docs/GUIA_EQUIPO.md §4)', () => {
   test('toda respuesta de error trae { error, codigo } estable', async () => {
     const casos = [
       [await api('GET', '/api/pacientes'), 401, 'NO_AUTENTICADO'],

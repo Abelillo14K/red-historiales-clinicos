@@ -3,7 +3,7 @@ import { Icon } from '../ui/index.js';
 
 // Institución autorizada por el BACKEND para la sesión actual. No es un selector:
 // si en el futuro un usuario tiene varias instituciones autorizadas, el cambio
-// deberá pedir al servidor un token de la otra institución (docs/GUIA_INTEGRACION_EQUIPO.md).
+// deberá pedir al servidor un token de la otra institución (docs/GUIA_EQUIPO.md).
 export default function InstitutionIndicator() {
   const { sesion, modulo } = useSesion();
   return (
