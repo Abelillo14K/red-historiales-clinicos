@@ -1,5 +1,5 @@
 'use strict';
-// Regresión del defecto D-01 (docs/AUDITORIA_PEDIATRIA_2026-10-31.md): un id_paciente
+// Regresión del defecto D-01 (instituciones/pediatria/docs/AUDITORIA_2026-10-31.md): un id_paciente
 // manual con muchos dígitos desbordaba $toInt en siguienteId y bloqueaba con 500
 // todas las altas automáticas posteriores. Se prueba la API sobre el doble en memoria
 // y el adaptador MongoDB sobre un mongod DESECHABLE (nunca centro_pediatrico_db).

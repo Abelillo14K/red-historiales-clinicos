@@ -1,6 +1,6 @@
 'use strict';
 const { DomainError } = require('../domain/errors');
-// Formato de error común a todas las instituciones (docs/GUIA_INTEGRACION_EQUIPO.md §4):
+// Formato de error común a todas las instituciones (docs/GUIA_EQUIPO.md §4):
 //   { error: mensaje legible, codigo: CODIGO_ESTABLE, detalles?: [{ campo, mensaje }] }
 
 const asyncRoute = f => (req, res, next) => Promise.resolve(f(req, res, next)).catch(next);

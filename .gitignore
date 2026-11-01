@@ -27,7 +27,6 @@ coverage/
 # --- Respaldos, volcados y bases de datos locales ---------------------------
 respaldos/
 respaldo_fase2_original/
-codigo_para_auditoria_pediatria.zip
 *.bson
 *.archive
 *.gz

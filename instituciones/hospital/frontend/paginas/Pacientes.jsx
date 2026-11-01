@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ID_VISTA_PREVIA, useModulo } from '@plataforma/modulos/ModuloContext.jsx';
 import { Card, FilterBar, FormField, Icon, PageHeader, PatientCallout, PendienteIntegracion, StatCard, TablaPendiente } from '@plataforma/ui/index.js';
 
-// Columnas del listado común de pacientes (docs/GUIA_INTEGRACION_EQUIPO.md §5.1).
+// Columnas del listado común de pacientes (docs/GUIA_EQUIPO.md §5.1).
 const COLUMNAS = [
   { clave: 'paciente', titulo: 'Paciente' },
   { clave: 'codigo', titulo: 'Expediente' },
@@ -14,7 +14,7 @@ const COLUMNAS = [
 
 // Listado reutilizado por Pacientes y Historiales archivados. Búsqueda y filtros
 // deshabilitados: no hay API que consultar. Al conectar, cargar con useCarga()
-// (ver docs/FRONTEND_EQUIPO.md §5) y usar DataTable + Pager.
+// (ver docs/GUIA_EQUIPO.md §7.3) y usar DataTable + Pager.
 export function ListadoPacientes({ archivados }) {
   const { vistaPrevia, enlace } = useModulo();
   return (

@@ -1,5 +1,5 @@
 // Manifiesto del módulo Centro Médico Pediátrico (contrato de módulos v1,
-// ver plataforma/modulos/contrato.js y docs/GUIA_INTEGRACION_EQUIPO.md).
+// ver plataforma/modulos/contrato.js y docs/GUIA_EQUIPO.md).
 // Sin JSX: las páginas se cargan bajo demanda con import() y el manifiesto se
 // puede validar desde Node.
 import { crearApiPediatria } from './api.js';

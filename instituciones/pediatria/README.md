@@ -12,15 +12,14 @@ instituciones/pediatria/
 │                      permisos y composición del servidor (server.js, app.js)
 ├── frontend/          módulo React: modulo.js (manifiesto), api.js, paginas/, componentes/
 ├── scripts/           índices, validadores, diagnóstico, respaldo y restauración aislada, token de desarrollo
-├── mongodb/           scripts mongosh históricos (bloqueados para no ejecutarse por accidente)
 ├── tests/             pruebas del backend, integración con mongod desechable y E2E de la interfaz
 │   ├── doubles/       doble en memoria de los puertos
 │   ├── soporte/       mongod desechable y copia del validador instalado
 │   └── e2e/           flujo completo en navegador (capturas en e2e/capturas/, ignoradas por Git)
-└── docs/              modelo, operación de MongoDB, respaldo, trazabilidad, demostración, informe, capturas e histórico
+└── docs/              modelo, operación de MongoDB, respaldo, trazabilidad, demostración, auditoría e informe
 ```
 
-> **Servidor común.** Mientras Pediatría sea el único backend, `backend/server.js` también sirve la aplicación web compilada (`apps/web/dist`) y aloja el enrutador por institución (`backend/api/enrutadorInstituciones.js`) y la validación de JWT (`backend/security.js`). Cuando exista el segundo backend, el equipo decidirá cómo compartir esa capa (ver `docs/ARQUITECTURA.md` §5).
+> **Servidor común.** Mientras Pediatría sea el único backend, `backend/server.js` también sirve la aplicación web compilada (`apps/web/dist`) y aloja el enrutador por institución (`backend/api/enrutadorInstituciones.js`) y la validación de JWT (`backend/security.js`). Cuando exista el segundo backend, el equipo decidirá cómo compartir esa capa ([`docs/GUIA_EQUIPO.md`](../../docs/GUIA_EQUIPO.md) §2).
 
 | Documento | Contenido |
 |---|---|
@@ -29,9 +28,8 @@ instituciones/pediatria/
 | [`docs/RESPALDO_Y_RESTAURACION.md`](docs/RESPALDO_Y_RESTAURACION.md) | Respaldo BSON con mongodump, restauración verificada en una instancia aislada, salvaguardas |
 | [`docs/TRAZABILIDAD_REQUISITOS.md`](docs/TRAZABILIDAD_REQUISITOS.md) | Matriz de requisitos del enunciado y de la Fase I |
 | [`docs/DEMOSTRACION.md`](docs/DEMOSTRACION.md) | Guion para presentar al profesor |
-| `docs/Informe_Fase2_Centro_Pediatrico.pdf` | Informe técnico completo |
-| [`docs/capturas/`](docs/capturas) | Capturas de la interfaz con datos ficticios (claro/oscuro, escritorio, tablet y móvil) |
-| `docs/historico/` | Instrucciones de etapas anteriores (no ejecutar) |
+| `docs/Informe_Fase2_Centro_Pediatrico.pdf` · `.docx` | Informe técnico de la Entrega II (31/10/2026, commit `cd34848`): PDF final y versión editable en Word |
+| [`docs/AUDITORIA_2026-10-31.md`](docs/AUDITORIA_2026-10-31.md) | Auditoría técnica y académica: inventario de operaciones, defectos (corregidos y pendientes) y preguntas de defensa |
 
 ## 2. Comandos de Pediatría (desde la raíz)
 
@@ -45,6 +43,15 @@ npm run db:indices                   # crea índices que falten (idempotente, no
 npm run db:respaldo                  # respaldo BSON en respaldos/mongodb/<fecha>/ (raíz del repositorio)
 npm run db:restaurar-aislado -- <carpeta>   # restaura en un mongod temporal y compara
 npm run token:dev -- <rol> <usuario>        # JWT de desarrollo
+```
+
+Alta de catálogos en una base vacía (la interfaz los consulta, no los crea), con la API en marcha:
+
+```powershell
+$t = (Invoke-RestMethod -Method Post http://localhost:3001/auth/dev-login -ContentType 'application/json' -Body '{"rol":"administrador","usuario":"ADMIN-DEMO"}').token
+$h = @{ Authorization = "Bearer $t" }
+Invoke-RestMethod -Method Post http://localhost:3001/api/medicos -Headers $h -ContentType 'application/json; charset=utf-8' -Body '{"id_medico":"M001","colegiado":"COL-FICTICIO-001","nombres":"Lucia","apellidos":"Ejemplo","especialidad":{"id_especialidad":"ESP01","nombre":"Pediatria"}}'
+Invoke-RestMethod -Method Post http://localhost:3001/api/vacunas -Headers $h -ContentType 'application/json; charset=utf-8' -Body '{"id_vacuna":"V001","nombre":"Vacuna demostrativa A","descripcion":"Dato ficticio"}'
 ```
 
 Ninguna prueba toca `centro_pediatrico_db`: las de integración y de interfaz inician un proceso `mongod` propio (puerto libre, carpeta temporal, solo `127.0.0.1`) con `tests/soporte/mongodTemporal.js` y lo eliminan al terminar.
@@ -105,7 +112,7 @@ Todas las rutas `/api/*` requieren `Authorization: Bearer <JWT>`. **M** = médic
 | POST | `/api/medicos` · `/api/vacunas` | A | Altas de catálogo |
 | GET | `/api/auditoria?id_paciente=&accion=&limite=` · `/api/auditoria/:id` | A | Bitácora |
 
-Errores con el formato común `{ error, codigo, detalles? }` (tabla completa de códigos en [`docs/GUIA_INTEGRACION_EQUIPO.md`](../../docs/GUIA_INTEGRACION_EQUIPO.md) §4): `400` datos inválidos (con `detalles` por campo), `401` sin token, inválido o vencido, `403` rol sin permiso o institución no registrada, `404` inexistente, `409` duplicado, historial archivado, dosis no pendiente o cambio concurrente incompatible, `413` cuerpo mayor a 100 KB, `422` referencia inexistente o rechazo del validador (`VALIDACION_MOTOR`), `503 AUDITORIA_NO_DISPONIBLE` si no se puede registrar una lectura o el acceso de desarrollo antes de devolver datos/token.
+Errores con el formato común `{ error, codigo, detalles? }` (tabla completa de códigos en [`docs/GUIA_EQUIPO.md`](../../docs/GUIA_EQUIPO.md) §4): `400` datos inválidos (con `detalles` por campo), `401` sin token, inválido o vencido, `403` rol sin permiso o institución no registrada, `404` inexistente, `409` duplicado, historial archivado, dosis no pendiente o cambio concurrente incompatible, `413` cuerpo mayor a 100 KB, `422` referencia inexistente o rechazo del validador (`VALIDACION_MOTOR`), `503 AUDITORIA_NO_DISPONIBLE` si no se puede registrar una lectura o el acceso de desarrollo antes de devolver datos/token.
 
 ## 6. Roles y permisos
 

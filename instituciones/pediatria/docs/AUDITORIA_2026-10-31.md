@@ -4,7 +4,7 @@ Fecha: 31/10/2026. Código auditado: commit `467f050` (rama `preview/redisenio-c
 
 Alcance: `instituciones/pediatria/` (backend, frontend, pruebas, scripts y documentación) y su integración con `apps/web/`. No se evaluaron Hospital, Odontología ni Laboratorio, salvo para separar responsabilidades.
 
-Etapa de diagnóstico: **no se modificó código, ni la base de datos, ni `.env`, ni los respaldos**. Este informe es el único archivo nuevo.
+Etapa de diagnóstico: **no se modificó código, ni la base de datos, ni `.env`, ni los respaldos**. En esa etapa, este informe fue el único archivo nuevo.
 
 > **Actualización del 31/10/2026 (corrección posterior).** **D-01 está corregido** en el commit que sigue a `467f050` en la misma rama. Detalle, pruebas y limitaciones restantes en §12 (D-01 y D-06). Con la corrección, `npm test` pasa **148/148** (30 de plataforma + 118 de Pediatría). El resto del informe describe el estado auditado; donde D-01 cambia una conclusión, se indica.
 
@@ -86,7 +86,7 @@ La parte pediátrica es **sólida, funcional y defendible**. Cumple los requisit
 
 ### 2.3 Corrección necesaria en la trazabilidad interna
 
-`instituciones/pediatria/docs/TRAZABILIDAD_REQUISITOS.md` cita en F1-15, F1-16, F1-17 y F1-18 «p. 24–25, catálogo general de operaciones». Ese catálogo es la **sección 8 del Hospital General**, no una lista común a todas las instituciones. Pediatría implementa esas operaciones como **extensión**: búsqueda de paciente, historial de medicamentos, bitácora de accesos y rango de fechas. Pero no son requisitos de la Fase I pediátrica. Ver D-09.
+`instituciones/pediatria/docs/TRAZABILIDAD_REQUISITOS.md` cita en F1-15, F1-16, F1-17 y F1-18 «p. 24–25, catálogo general de operaciones». Ese catálogo es la **sección 8 del Hospital General**, no una lista común a todas las instituciones. Pediatría implementa esas operaciones como **extensión**: búsqueda de paciente, historial de medicamentos, bitácora de accesos y rango de fechas. Pero no son requisitos de la Fase I pediátrica. Ver D-09 (corregido el 31/10/2026).
 
 ---
 
@@ -152,7 +152,7 @@ Pruebas: **U** = API real sobre el doble en memoria · **I** = `mongo.integratio
 | Motor distinto por institución (4 motores) | [P] p. 2–3 | — | — | No aplica a Pediatría | Grupal: no implementado; asignación de la [F1] inconsistente |
 | Justificar la asignación institución → motor | [P] p. 3 | [F1] sección pediátrica; `MODELO_Y_DECISIONES.md` §1 | — | Implementado parcialmente | La justificación de MongoDB existe; falta el documento conjunto |
 | Modelado corregido según la Entrega I | [P] p. 3 | Extensiones de Fase II documentadas | — | No verificable con la información disponible | No hay retroalimentación del profesor |
-| Consultas equivalentes en los cuatro motores | [P] p. 4 | Puertos y contrato de operaciones (`GUIA_INTEGRACION_EQUIPO.md` §5) | U (contrato) | No aplica a Pediatría | Grupal; Pediatría aporta el contrato de referencia |
+| Consultas equivalentes en los cuatro motores | [P] p. 4 | Puertos y contrato de operaciones (`GUIA_EQUIPO.md` §5) | U (contrato) | No aplica a Pediatría | Grupal; Pediatría aporta el contrato de referencia |
 | Modelo documental: qué se embebe y qué se referencia | [P] p. 4 | `MODELO_Y_DECISIONES.md` §3; colecciones reales | L (estructura real = diseño), I | Cumplido y verificado | Incluye el análisis del límite de 16 MiB |
 | Visualización ordenada que no cambie según el motor | [P] p. 4 | Plataforma común; el motor no se muestra | E «motor oculto» | Implementado parcialmente | Solo hay un motor para comparar |
 | Registro de paciente nuevo | [P] p. 4 | `POST /api/pacientes`, `PacienteNuevo.jsx` | U, I, E, `identificador-paciente.test.js` | Cumplido y verificado | **D-01** (el id automático podía quedar inutilizable): corregido |
@@ -312,7 +312,7 @@ Sí hay dos casos en que la operación **se completa aunque la auditoría falle*
 | Cabeceras | `nosniff`, `X-Frame-Options: DENY`, `no-referrer`, COOP, `no-store`. **Sin Content-Security-Policy** (D-14) |
 | Token en el frontend | `sessionStorage` (se borra al cerrar la pestaña); expuesto a XSS si existiera (React escapa la salida; no hay `dangerouslySetInnerHTML` en Pediatría) |
 | Base de datos | Usuario `readWrite` limitado a la base; credenciales solo en `.env`, que está fuera de Git |
-| Riesgo al publicar en GitHub | Se revisó el diff de `467f050`: no hay secretos, URIs con contraseña, tokens ni respaldos. `.gitignore` cubre `.env`, `respaldos/` y los volcados. Los datos de pacientes son ficticios. Mantener el repositorio privado |
+| Riesgo al publicar en GitHub | Se revisó el diff de `467f050`: no hay secretos, URIs con contraseña, tokens ni respaldos. `.gitignore` cubre `.env`, `respaldos/` y los volcados. Los datos de pacientes son ficticios. El repositorio es público en GitHub: no debe contener datos reales ni secretos |
 
 **Conclusión:** la seguridad es adecuada para el alcance académico. No debe presentarse como autenticación productiva.
 
@@ -385,9 +385,7 @@ Interfaz → `@plataforma/api/http.js` (Bearer, 401 → cierre de sesión, `ApiE
 
 ## 12. Defectos encontrados (con evidencia reproducible)
 
-Scripts de esta auditoría, fuera del repositorio:
-- Experimentos sobre `mongod` desechable: `C:\Users\abela\AppData\Local\Temp\claude\C--Users-abela-OneDrive-Pictures-BASES-DE-DATOS-PROYECTO-centro-pediatrico-fase2\e7a70414-5e2a-4bd4-9cab-e412a193124b\scratchpad\experimentos-desechable.js`
-- Inspección de solo lectura de la base real: `C:\Users\abela\AppData\Local\Temp\claude\C--Users-abela-OneDrive-Pictures-BASES-DE-DATOS-PROYECTO-centro-pediatrico-fase2\e7a70414-5e2a-4bd4-9cab-e412a193124b\scratchpad\inspeccion-lectura.js`
+Los experimentos se hicieron con scripts temporales (no versionados): una inspección de solo lectura de la base real y pruebas sobre `mongod` desechable. Los defectos que se corrigieron tienen su prueba de regresión en `instituciones/pediatria/tests/`.
 
 ### CRÍTICO
 
@@ -439,6 +437,7 @@ Ninguno confirmado.
 - **Evidencia:** cita «61 pruebas» y rutas `src/domain`, `src/ports`, `frontend/src`, anteriores al monorepositorio. Hoy hay 148 pruebas y otras rutas, y no aparecen las correcciones de integridad y auditoría.
 - **Impacto:** es un entregable académico que contradice el código y el README.
 - **Recomendación:** regenerarlo a partir del estado actual y decidir cuál es la copia oficial.
+- **Estado: CORREGIDO (31/10/2026).** Informe regenerado sobre `main` (`cd34848`): `Informe_Fase2_Centro_Pediatrico.pdf` y su versión editable `.docx`, con rutas actuales, 148 pruebas, correcciones (incluida D-01) y limitaciones. La copia oficial es la del repositorio; la de Descargas es anterior.
 
 **D-04. La unicidad de identidad no cubre varias instancias.**
 - **Ubicación:** `application/pacientesService.js:105-115`.
@@ -472,6 +471,7 @@ Ninguno confirmado.
 **D-09. La matriz de trazabilidad cita mal su fuente.**
 - F1-15 a F1-18 atribuyen a la Fase I pediátrica las operaciones del catálogo del Hospital General (§2.3).
 - **Recomendación:** reclasificarlas como «extensión» y citar la sección correcta.
+- **Estado: CORREGIDO (31/10/2026).** `TRAZABILIDAD_REQUISITOS.md` se revisó: esas operaciones pasan a §3 «Extensiones», con [F1-H] p. 24–25 como origen, y se corrigieron las páginas de la Fase I pediátrica (p. 41–48) y del enunciado.
 
 **D-10. Hay datos heredados sin trazas en la base real.**
 - P003 archivado sin `archivado_por`; C001 de P001 sin `registrado_por`; 44 eventos sin `id_evento`.
@@ -528,8 +528,8 @@ Todas sobre el commit `467f050`, el 31/10/2026. Las escrituras se hicieron solo 
 | `git diff --check` | Sin errores |
 | `npm run db:diagnostico` (solo lectura, base real) | 4 colecciones, 104 documentos, índices esperados |
 | `npm run db:validadores` (solo lectura, base real) | 4 validadores, perímetro opcional, 0 documentos que incumplen |
-| Inspección de solo lectura de la base real (script de §12) | Validadores idénticos al código; integridad sin hallazgos salvo D-10; `explain` de 10 consultas |
-| Experimentos sobre `mongod` desechable (script de §12) | E1 confirma D-01 · E2 D-04 · E3 D-05 · E4 D-15 · E5 autorización correcta en todas las rutas · E6 volumen de 20 000 (D-07) · E7 caída de MongoDB (D-08) |
+| Inspección de solo lectura de la base real (script temporal) | Validadores idénticos al código; integridad sin hallazgos salvo D-10; `explain` de 10 consultas |
+| Experimentos sobre `mongod` desechable (script temporal) | E1 confirma D-01 · E2 D-04 · E3 D-05 · E4 D-15 · E5 autorización correcta en todas las rutas · E6 volumen de 20 000 (D-07) · E7 caída de MongoDB (D-08) |
 | `npm run db:restaurar-aislado` | **No ejecutado:** escribe un registro dentro de la carpeta del respaldo, y la consigna prohíbe modificar respaldos. El último simulacro documentado es del 25/10/2026 |
 
 ---
@@ -553,9 +553,9 @@ Todas sobre el commit `467f050`, el 31/10/2026. Las escrituras se hicieron solo 
 **Indispensables antes de la entrega**
 
 1. ~~Corregir D-01 y su regresión en MongoDB real (D-06).~~ Hecho (31/10/2026).
-2. Regenerar `Informe_Fase2_Centro_Pediatrico.pdf` con el estado actual (D-03).
+2. ~~Regenerar `Informe_Fase2_Centro_Pediatrico.pdf` con el estado actual (D-03).~~ Hecho (31/10/2026), con versión `.docx` editable.
 3. Integrar el PR #1 en `main` cuando esté aprobado y entregar desde `main`.
-4. Corregir la cita de fuentes en `TRAZABILIDAD_REQUISITOS.md` (D-09).
+4. ~~Corregir la cita de fuentes en `TRAZABILIDAD_REQUISITOS.md` (D-09).~~ Hecho (31/10/2026).
 5. Preparar la justificación de los estados `Pendiente`/`Aplicada`/`Cancelada` frente a los de la Fase I, y la de standalone frente a replica set.
 
 **Recomendables**
@@ -610,11 +610,11 @@ Todas sobre el commit `467f050`, el 31/10/2026. Las escrituras se hicieron solo 
    - Grupales: inicio de sesión real, los otros tres motores, consultas equivalentes y documento comparativo.
 8. **Los cinco problemas más importantes:**
    1. D-01 (id automático), ya corregido.
-   2. D-03 (informe PDF desactualizado).
+   2. D-03 (informe PDF desactualizado), ya corregido.
    3. `main` sin las correcciones (PR #1).
    4. D-05 y D-04 (detección de duplicados).
    5. D-08 (fallo de MongoDB como 500 genérico).
-9. **¿Está lista para entregarse y defenderse?** Casi. D-01 ya está corregido; falta regenerar el informe y entregar desde un `main` actualizado. Con eso, la parte pediátrica es defendible con evidencia. Las limitaciones restantes (standalone sin transacciones, identidad entre instancias, autenticación de desarrollo) están documentadas y deben explicarse, no ocultarse.
+9. **¿Está lista para entregarse y defenderse?** Sí, para la parte individual. D-01 está corregido y en `main` (`cd34848`), y el informe de Fase II y la matriz están regenerados (D-03, D-09). La parte pediátrica es defendible con evidencia. Las limitaciones restantes (standalone sin transacciones, identidad entre instancias, autenticación de desarrollo) están documentadas y deben explicarse, no ocultarse.
 10. **Indispensables y opcionales:**
     - **Indispensables:** recomendaciones 1 a 5 de §16.
     - **Recomendables:** 6 a 8.

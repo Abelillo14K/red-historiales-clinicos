@@ -5,7 +5,7 @@ import EncabezadoExpediente from '../componentes/EncabezadoExpediente.jsx';
 import PiezasDentales from '../componentes/PiezasDentales.jsx';
 
 // Secciones del expediente odontológico. Las comunes usan las columnas del contrato
-// (docs/GUIA_INTEGRACION_EQUIPO.md §5.1); «Piezas dentales» es la extensión propia.
+// (docs/GUIA_EQUIPO.md §5.1); «Piezas dentales» es la extensión propia.
 const PESTANAS = [
   { clave: 'resumen', titulo: 'Datos generales' },
   { clave: 'consultas', titulo: 'Consultas', accion: 'Registrar consulta', descripcion: 'Atenciones del paciente, de la más reciente a la más antigua.',

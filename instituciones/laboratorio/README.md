@@ -4,13 +4,13 @@
 |---|---|
 | Estado | **Preparado visualmente · pendiente de integración** (no registrado en `apps/web/src/plataforma/modulos/registro.js`) |
 | Identificador | `laboratorio_clinico` (debe coincidir con el claim `institucion` del JWT y con la clave del backend) |
-| Responsable | Eddy (`docs/ARQUITECTURA.md` §6) |
-| Motor | Por confirmar por el equipo (`docs/ARQUITECTURA.md` §6) |
+| Responsable | Eddy (`docs/GUIA_EQUIPO.md` §1) |
+| Motor | Por confirmar por el equipo (`docs/GUIA_EQUIPO.md` §1) |
 | Vista previa | `npm run web:dev` → <http://localhost:5173/vista-previa/laboratorio_clinico> |
 
 ## Contenido
 
-No hay carpeta `backend/` todavía: se crea cuando el responsable empiece a escribirlo (`docs/ARQUITECTURA.md` §7), junto con `tests/` y `docs/` propios.
+No hay carpeta `backend/` todavía: se crea cuando el responsable empiece a escribirlo (`docs/GUIA_EQUIPO.md` §6), junto con `tests/` y `docs/` propios.
 
 ```
 instituciones/laboratorio/
@@ -51,7 +51,7 @@ Sin un resultado seleccionado muestra una plantilla con identificación, paráme
 
 ## Qué falta (lo decide el responsable del Laboratorio)
 
-Backend propio con `GET /api/sesion`, `roles` y permisos reales, operaciones de `api.js`, modelo de solicitudes y resultados, y el registro en `registro.js` (`docs/FRONTEND_EQUIPO.md` §7). Sin datos ficticios ni peticiones mientras tanto.
+Backend propio con `GET /api/sesion`, `roles` y permisos reales, operaciones de `api.js`, modelo de solicitudes y resultados, y el registro en `registro.js` (`docs/GUIA_EQUIPO.md` §7). Sin datos ficticios ni peticiones mientras tanto.
 
 ## Recorrido del diseño
 
