@@ -20,7 +20,7 @@ function crearCrecimientoService({ pacientes }, comun) {
       registrado_por: traza(actor)
     };
     await escribir(actor, 'REGISTRAR_CRECIMIENTO', { id_paciente: id, recurso: 'controles_crecimiento', referencia: control.id_control },
-      () => pacientes.agregarControl(id, control), 'Identificador de control repetido o consulta inexistente');
+      () => pacientes.agregarControl(id, control), 'Control repetido o historial modificado durante la operación; recargue y vuelva a intentarlo');
     return { id_control: control.id_control };
   }
 

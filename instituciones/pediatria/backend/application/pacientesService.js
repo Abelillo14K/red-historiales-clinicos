@@ -12,20 +12,26 @@ function crearPacientesService({ pacientes }, comun) {
   const normalizarTutores = lista => lista.map(t => limpiar({ ...t, id_tutor: t.id_tutor || R.nuevoId('T') }));
 
   // Sin índice único sobre nombres+apellidos+nacimiento (no existe en la base
-  // principal), buscar el duplicado e insertar no es atómico. Las altas con la
-  // misma clave se ejecutan una tras otra dentro de este proceso de la API; no
+  // principal), buscar el duplicado y escribir no es atómico. Altas y ediciones
+  // con la misma identidad destino se serializan en este servicio; no
   // cubre varias instancias simultáneas (docs/OPERACION_MONGODB.md §4).
-  const altasEnCurso = new Map();
+  const identidadesEnCurso = new Map();
   async function enExclusion(clave, fn) {
-    const actual = (altasEnCurso.get(clave) || Promise.resolve()).then(fn);
+    const actual = (identidadesEnCurso.get(clave) || Promise.resolve()).then(fn);
     const cola = actual.catch(() => {});
-    altasEnCurso.set(clave, cola);
-    try { return await actual; } finally { if (altasEnCurso.get(clave) === cola) altasEnCurso.delete(clave); }
+    identidadesEnCurso.set(clave, cola);
+    try { return await actual; } finally { if (identidadesEnCurso.get(clave) === cola) identidadesEnCurso.delete(clave); }
   }
   // Misma comparación que buscarDuplicado: sin distinguir mayúsculas.
-  const claveDuplicado = d => `${d.nombres.toLowerCase()}|${d.apellidos.toLowerCase()}|${d.fecha_nacimiento.toISOString()}`;
+  const identidadDe = p => ({ nombres: p.nombres, apellidos: p.apellidos, fecha_nacimiento: p.fecha_nacimiento });
+  const claveDuplicado = d => JSON.stringify([d.nombres.toLowerCase(), d.apellidos.toLowerCase(), d.fecha_nacimiento.toISOString()]);
+  // No es JSON de un arreglo, así que no coincide con ninguna clave de identidad.
+  const CLAVE_ID_AUTOMATICO = 'id_paciente_automatico';
 
   async function registrar(actor, datos) {
+    if (datos.id_paciente && R.esIdPacienteReservado(datos.id_paciente)) {
+      throw E.invalid('Los identificadores "P" seguidos de números los asigna el sistema: omita id_paciente o use otro formato');
+    }
     R.noEnFuturo(datos.fecha_nacimiento, 'fecha_nacimiento');
     const tutores = normalizarTutores(datos.tutores);
     R.validarTutores(tutores);
@@ -37,25 +43,35 @@ function crearPacientesService({ pacientes }, comun) {
     if (existente) {
       throw E.conflict(`Ya existe un paciente con los mismos nombres, apellidos y fecha de nacimiento (${existente.id_paciente})`);
     }
-    // Con id automático se reintenta si otra petición tomó el mismo correlativo.
-    for (let intento = 0; intento < 5; intento++) {
-      const id_paciente = datos.id_paciente || await pacientes.siguienteId();
+    const crearCon = async id_paciente => {
       const doc = {
         id_paciente, nombres: datos.nombres, apellidos: datos.apellidos,
         fecha_nacimiento: datos.fecha_nacimiento, sexo: datos.sexo, estado_historial: 'Activo',
         tutores, consultas: [], controles_crecimiento: [], esquema_vacunacion: [],
         fecha_registro: new Date(), registrado_por: traza(actor)
       };
-      try {
-        await escribir(actor, 'CREAR_PACIENTE', { id_paciente, recurso: 'pacientes', referencia: id_paciente },
-          async () => { await pacientes.crear(doc); return true; });
-        return { id_paciente };
-      } catch (e) {
-        if (datos.id_paciente || e.code !== 'CONFLICTO') {
-          if (e.code === 'CONFLICTO') throw E.conflict(`Ya existe el paciente ${id_paciente}`);
+      await escribir(actor, 'CREAR_PACIENTE', { id_paciente, recurso: 'pacientes', referencia: id_paciente },
+        async () => { await pacientes.crear(doc); return true; });
+      return { id_paciente };
+    };
+    if (datos.id_paciente) {
+      try { return await crearCon(datos.id_paciente); } catch (e) {
+        if (e.code === 'CONFLICTO') throw E.conflict(`Ya existe el paciente ${datos.id_paciente}`);
+        throw e;
+      }
+    }
+    // Id automático: en esta instancia las altas toman el correlativo de una en una;
+    // si otra instancia insertó el mismo número (índice único), se recalcula hasta 5 veces.
+    // Una secuencia agotada (siguienteId) no se reintenta.
+    for (let intento = 0; intento < 5; intento++) {
+      const r = await enExclusion(CLAVE_ID_AUTOMATICO, async () => {
+        const id_paciente = await pacientes.siguienteId();
+        try { return await crearCon(id_paciente); } catch (e) {
+          if (e.code === 'CONFLICTO') return null;
           throw e;
         }
-      }
+      });
+      if (r) return r;
     }
     throw E.conflict('No fue posible asignar un identificador; vuelva a intentarlo');
   }
@@ -68,7 +84,7 @@ function crearPacientesService({ pacientes }, comun) {
     if (actor.rol === 'secretaria') {
       for (const p of r.items) for (const c of CAMPOS_CLINICOS_LISTADO) delete p[c];
     }
-    if (estado !== 'Activo') await auditar(actor, 'LISTAR_ARCHIVADOS', { recurso: 'pacientes' });
+    await auditar(actor, estado === 'Activo' ? 'LISTAR_PACIENTES' : 'LISTAR_ARCHIVADOS', { recurso: 'pacientes' });
     return { ...r, pagina, limite };
   }
 
@@ -95,10 +111,16 @@ function crearPacientesService({ pacientes }, comun) {
     const vacunaAnterior = (p.esquema_vacunacion || []).some(d => new Date(d.fecha_programada) < nacimiento ||
       (d.fecha_aplicacion && new Date(d.fecha_aplicacion) < nacimiento));
     if (vacunaAnterior) throw E.invalid('La fecha de nacimiento sería posterior a registros de vacunación existentes');
-    await escribir(actor, 'ACTUALIZAR_PACIENTE', { id_paciente: id, recurso: 'pacientes', detalle: Object.keys(campos).join(',') },
-      () => pacientes.actualizarDatos(id, { ...campos, ultima_actualizacion: traza(actor) }),
-      'El historial cambió durante la operación (posible registro clínico nuevo); recargue y vuelva a intentarlo');
-    return { ok: true };
+    const previa = identidadDe(p);
+    const destino = identidadDe({ ...p, ...campos });
+    return enExclusion(claveDuplicado(destino), async () => {
+      const existente = await pacientes.buscarDuplicado(destino, id);
+      if (existente) throw E.conflict(`Ya existe un paciente con los mismos nombres, apellidos y fecha de nacimiento (${existente.id_paciente})`);
+      await escribir(actor, 'ACTUALIZAR_PACIENTE', { id_paciente: id, recurso: 'pacientes', detalle: Object.keys(campos).join(',') },
+        () => pacientes.actualizarDatos(id, { ...campos, ultima_actualizacion: traza(actor) }, previa),
+        'El historial cambió durante la operación; recargue y vuelva a intentarlo');
+      return { ok: true };
+    });
   }
 
   async function guardarTutores(actor, id, previos, nuevos, accion, referencia) {

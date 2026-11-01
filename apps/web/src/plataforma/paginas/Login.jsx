@@ -6,6 +6,13 @@ import { Logo } from '../layout/Sidebar.jsx';
 import { NOMBRE_PLATAFORMA, registro } from '../modulos/registro.js';
 import { destinoTrasLogin } from '../portal/portal.js';
 
+const INSTITUCIONES = [
+  ['Hospital General', 'hospital', 'Consultas y hospitalización'],
+  ['Laboratorio Clínico', 'matraz', 'Exámenes y resultados'],
+  ['Clínica Odontológica', 'diente', 'Atención odontológica'],
+  ['Centro Pediátrico', 'pediatria', 'Crecimiento y vacunación']
+];
+
 export default function Login() {
   const { sesion, verificando, aviso, iniciarDesarrollo, iniciarConToken, configuracion } = useSesion();
   const loc = useLocation();
@@ -30,17 +37,23 @@ export default function Login() {
       <div className="login-shell">
         <section className="login-intro" aria-label="Presentación">
           <div className="brand"><Logo /><span><b>{NOMBRE_PLATAFORMA}</b><small>Plataforma compartida de historiales clínicos</small></span></div>
-          <h1>Acceso del personal autorizado</h1>
-          <p>Cada usuario trabaja con los historiales de su propia institución. La institución y los permisos los determina el servidor al validar la sesión.</p>
-          <ul className="login-points">
-            <li><Icon name="auditoria" /> Accesos y cambios registrados en bitácora</li>
-            <li><Icon name="llave" /> Permisos por rol verificados en el servidor</li>
-            <li><Icon name="institucion" /> Datos de cada institución en su propio motor</li>
-          </ul>
+          <span className="login-eyebrow">Arquitectura hexagonal · enrutamiento por usuario</span>
+          <h1>Un historial clínico.<span>Cuatro bases de datos.</span></h1>
+          <p>Una plataforma para las cuatro instituciones. Tu sesión dirige las operaciones a los datos de tu institución, con los permisos asignados a tu rol.</p>
+          <a className="btn login-access-link" href="#formulario-acceso">Ir al formulario de acceso<Icon name="derecha" size={16} /></a>
+          <div className="login-institutions" aria-label="Instituciones de la red">
+            {INSTITUCIONES.map(([nombre, icono, descripcion]) => <div className="login-institution" key={nombre}>
+              <span className="stat-icon"><Icon name={icono} size={21} /></span>
+              <div><b>{nombre}</b><small>{descripcion}</small></div>
+            </div>)}
+          </div>
+          <footer className="login-credit">Universidad Rafael Landívar · Bases de Datos II · Proyecto final</footer>
         </section>
 
-        <div className="card login-card">
+        <div className="login-card-wrap">
+        <div className="card login-card" id="formulario-acceso" tabIndex={-1}>
           <h2>Iniciar sesión</h2>
+          <p className="login-greeting">Bienvenida de nuevo. Accede a los historiales de tu institución.</p>
           {aviso && aviso !== config?.error && <Alerta tipo="warn">{aviso}</Alerta>}
           {config?.error && <Alerta titulo="No se puede contactar la API">{config.error}</Alerta>}
           {envio.error && <Alerta>{envio.error.message}</Alerta>}
@@ -48,7 +61,12 @@ export default function Login() {
 
           <section className="login-section" aria-labelledby="acceso-institucional">
             <h3 id="acceso-institucional"><Icon name="institucion" /> Acceso institucional</h3>
-            <p className="meta">El inicio de sesión común de la plataforma todavía no está implementado. Cuando exista, redirigirá aquí automáticamente con el token de su institución. Mientras tanto puede pegar un token emitido por ese servicio.</p>
+            <p className="meta">El acceso con credenciales institucionales está pendiente de integración. Por ahora, utiliza un token o el modo de desarrollo.</p>
+            <fieldset disabled className="fieldset-plain institutional-access">
+              <legend className="sr-only">Credenciales institucionales pendientes de integración</legend>
+              <FormField label="Usuario institucional">{p => <input {...p} placeholder="Tu usuario" autoComplete="username" />}</FormField>
+              <FormField label="Contraseña">{p => <input {...p} type="password" placeholder="Tu contraseña" autoComplete="current-password" />}</FormField>
+            </fieldset>
             <details>
               <summary>Usar un token institucional</summary>
               <form className="stack" onSubmit={e => { e.preventDefault(); if (token.trim()) iniciarConToken(token); }}>
@@ -87,6 +105,8 @@ export default function Login() {
               <Icon name="ojo" size={15} /><Link to="/vista-previa">Vista previa de los módulos pendientes</Link><span>· solo desarrollo, sin sesión</span>
             </p>
           )}
+          <p className="login-audit"><Icon name="auditoria" size={18} /><span>Acceso por rol y trazabilidad de las operaciones sobre los historiales clínicos.</span></p>
+        </div>
         </div>
       </div>
     </div>

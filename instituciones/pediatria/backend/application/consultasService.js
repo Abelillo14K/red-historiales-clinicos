@@ -62,7 +62,7 @@ function crearConsultasService({ pacientes, medicos }, comun) {
     }
     await escribir(actor, 'REGISTRAR_CONSULTA', { id_paciente: id, recurso: 'consultas', referencia: id_consulta },
       () => pacientes.agregarConsulta(id, consulta, control),
-      'Identificador de consulta o de control repetido en el historial');
+      'La consulta o el control ya existen, o el historial cambió durante la operación; recargue y vuelva a intentarlo');
     return { id_consulta, id_control: control?.id_control || null };
   }
 

@@ -253,6 +253,7 @@ async function main() {
       await t2.getByLabel('Apellidos').fill('Ficticio Dos');
       await t2.getByLabel('DPI').fill('2999888770202');
       await t2.getByLabel('Parentesco').fill('Padre');
+      assert.equal(await page.getByRole('progressbar', { name: 'Secciones completas' }).getAttribute('value'), '2', 'el progreso refleja paciente y tutores completos');
       await page.getByRole('button', { name: 'Registrar paciente' }).click();
       await page.waitForURL(/\/pacientes\/P\d+$/);
       id = page.url().split('/').pop();
@@ -306,6 +307,7 @@ async function main() {
       await page.getByLabel('Registrar control de crecimiento en esta consulta').check();
       await page.getByLabel('Peso (kg)').fill('11.2');
       await page.getByLabel('Talla (cm)').fill('84');
+      assert.deepEqual(await page.locator('.form-summary dd').allTextContents(), [id, '1', '1', 'Incluido'], 'el resumen muestra los elementos que se enviarán juntos');
       await page.getByRole('button', { name: 'Registrar consulta' }).click();
       await page.waitForURL(/\/consultas$/);
       await toast('registrada');
@@ -396,7 +398,7 @@ async function main() {
       await captura('14a-panel-administrador');
       await page.goto(`${base}/pacientes/${id}`);
       await page.getByRole('button', { name: 'Archivar historial' }).click();
-      await dialogo().getByLabel('Motivo').selectOption('Otra causa administrativa');
+      await dialogo().getByRole('radio', { name: /^Otra causa administrativa/ }).check();
       await dialogo().getByLabel('Detalle del motivo').fill('Cambio de domicilio ficticio');
       await dialogo().getByRole('button', { name: 'Archivar…' }).click();
       await dialogo().getByRole('button', { name: 'Archivar', exact: true }).click();
@@ -418,6 +420,11 @@ async function main() {
       await page.getByRole('cell', { name: id }).first().waitFor();
       await captura('17-auditoria');
       await auditarAccesibilidad('Auditoría'); await auditarContraste('Auditoría');
+      for (const accion of ['LEER_PANEL', 'LISTAR_PACIENTES', 'LEER_VACUNACION_PENDIENTE']) {
+        await page.getByLabel('Acción').selectOption(accion);
+        await page.getByRole('button', { name: 'Filtrar' }).click();
+        await page.getByRole('cell', { name: accion, exact: true }).first().waitFor();
+      }
       await salir();
     });
 
@@ -507,7 +514,7 @@ async function main() {
       await page.goto(`${base}/medicos`, { waitUntil: 'load' });
       assert.deepEqual(await temaActual(), { tema: 'oscuro', esquema: 'oscuro' });
       const fondo = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-      assert.equal(fondo, 'rgb(16, 25, 28)', `fondo oscuro antes de React (${fondo})`);
+      assert.equal(fondo, 'rgb(13, 20, 38)', `fondo oscuro antes de React (${fondo})`);
       await page.unroute(/\/assets\/.*\.js$/);
       simulandoCaida = false;
       await page.evaluate(() => localStorage.removeItem('plataforma.tema'));
@@ -558,13 +565,26 @@ async function main() {
       for (const esquema of ['claro', 'oscuro']) {
         await page.evaluate(t => localStorage.setItem('plataforma.tema', t), esquema);
         for (const [ruta, nombre] of [['/', 'panel'], [`/pacientes/${id}`, 'expediente'], [`/pacientes/${id}/consultas`, 'consultas'],
-          [`/pacientes/${id}/prescripciones`, 'prescripciones'], [`/pacientes/${id}/crecimiento`, 'crecimiento'], [`/pacientes/${id}/vacunacion`, 'vacunacion'],
+          [`/pacientes/${id}/prescripciones`, 'prescripciones'], [`/pacientes/${id}/crecimiento`, 'crecimiento'], [`/pacientes/${id}/vacunacion`, 'vacunacion'], [`/pacientes/${id}/auditoria`, 'auditoria-paciente'],
           ['/pacientes?estado=Todos', 'pacientes'], ['/pacientes/nuevo', 'registro'], ['/archivados', 'archivados'], ['/medicos', 'medicos'],
           ['/vacunacion', 'vacunacion-global'], ['/auditoria', 'auditoria']]) {
           await page.goto(base + ruta);
           await page.waitForLoadState('networkidle');
           assert.equal((await temaActual()).esquema, esquema);
           await auditarContraste(`${nombre} (${esquema})`);
+          if (nombre === 'pacientes') {
+            const edadesEnUnaLinea = await page.locator('.patient-age').evaluateAll(edades => edades.every(e => {
+              const rango = document.createRange(); rango.selectNodeContents(e);
+              return rango.getClientRects().length === 1;
+            }));
+            assert.ok(edadesEnUnaLinea, 'la columna de acción no fragmenta la edad en varias líneas');
+          }
+          if (nombre === 'consultas') {
+            const fueraDeTarjeta = await page.locator('.consulta-card').evaluateAll(tarjetas => tarjetas.flatMap(t =>
+              [...t.querySelectorAll('.rx, .med')].filter(e => e.getBoundingClientRect().right > t.getBoundingClientRect().right + 1)
+                .map(e => e.className)));
+            assert.deepEqual(fueraDeTarjeta, [], 'las recetas caben en la columna de consultas junto al resumen lateral');
+          }
           await captura(`comparativa-${esquema}-${nombre}`);
           if (nombre === 'panel') {
             assert.equal(await cuentaIndicadores(), 6, 'seis indicadores para el administrador');
@@ -619,7 +639,7 @@ async function main() {
     await paso('Escritorio grande (1920 px) y tablet (820 px): sin desbordes', async () => {
       for (const [ancho, alto] of [[1920, 1080], [820, 1180]]) {
         await page.setViewportSize({ width: ancho, height: alto });
-        for (const ruta of ['/', '/pacientes?estado=Todos', `/pacientes/${id}`, `/pacientes/${id}/consultas`, `/pacientes/${id}/prescripciones`, '/auditoria']) {
+        for (const ruta of ['/', '/pacientes?estado=Todos', `/pacientes/${id}`, `/pacientes/${id}/consultas`, `/pacientes/${id}/prescripciones`, `/pacientes/${id}/crecimiento`, `/pacientes/${id}/vacunacion`, `/pacientes/${id}/auditoria`, '/auditoria']) {
           await page.goto(base + ruta);
           await page.waitForLoadState('networkidle');
           const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -640,8 +660,21 @@ async function main() {
       const anterior = page;
       page = await movil.newPage();
       try {
+        for (const tema of ['claro', 'oscuro']) {
+          await page.goto(`${base}/login`);
+          await page.evaluate(t => localStorage.setItem('plataforma.tema', t), tema);
+          await page.reload();
+          const acceso = page.getByRole('link', { name: 'Ir al formulario de acceso' });
+          await acceso.focus(); await page.keyboard.press('Enter');
+          const tarjeta = await page.locator('#formulario-acceso').boundingBox();
+          assert.ok(tarjeta.y >= 0 && tarjeta.y < 40, 'el acceso móvil salta la presentación y lleva al formulario');
+          assert.equal(await page.evaluate(() => document.activeElement.id), 'formulario-acceso', 'el salto también mueve el foco');
+          await auditarContraste(`Acceso móvil (${tema})`);
+          await captura(`movil-login-${tema}-acceso`);
+        }
+        await page.evaluate(() => localStorage.setItem('plataforma.tema', 'claro'));
         await entrar('administrador', 'E2E-MOVIL');
-        for (const ruta of ['/', '/pacientes?estado=Todos', `/pacientes/${id}/consultas`, `/pacientes/${id}/crecimiento`, `/pacientes/${id}/vacunacion`, '/auditoria']) {
+        for (const ruta of ['/', '/pacientes?estado=Todos', `/pacientes/${id}`, `/pacientes/${id}/consultas`, `/pacientes/${id}/prescripciones`, `/pacientes/${id}/crecimiento`, `/pacientes/${id}/vacunacion`, `/pacientes/${id}/auditoria`, '/auditoria']) {
           await page.goto(base + ruta);
           await page.waitForLoadState('networkidle');
           const desborde = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -662,7 +695,7 @@ async function main() {
         await page.keyboard.press('Escape');
         // Mismo recorrido en tema oscuro.
         await page.evaluate(() => localStorage.setItem('plataforma.tema', 'oscuro'));
-        for (const [ruta, nombre] of [['/', 'panel'], [`/pacientes/${id}`, 'expediente'], [`/pacientes/${id}/consultas`, 'consultas'], [`/pacientes/${id}/vacunacion`, 'vacunacion']]) {
+        for (const [ruta, nombre] of [['/', 'panel'], [`/pacientes/${id}`, 'expediente'], [`/pacientes/${id}/consultas`, 'consultas'], [`/pacientes/${id}/prescripciones`, 'prescripciones'], [`/pacientes/${id}/crecimiento`, 'crecimiento'], [`/pacientes/${id}/vacunacion`, 'vacunacion'], [`/pacientes/${id}/auditoria`, 'auditoria-paciente']]) {
           await page.goto(base + ruta);
           await page.waitForLoadState('networkidle');
           assert.equal((await temaActual()).esquema, 'oscuro');

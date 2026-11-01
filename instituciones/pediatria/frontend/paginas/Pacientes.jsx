@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Card, DataTable, EmptyState, ErrorState, FilterBar, FormField, Icon, LoadingState, PageHeader, Pager, SearchBar, StatusBadge, useCarga } from '@plataforma/ui/index.js';
+import { Card, DataTable, EmptyState, ErrorState, FilterBar, FormField, Icon, LoadingState, PageHeader, Pager, PatientCallout, SearchBar, StatCard, StatusBadge, useCarga } from '@plataforma/ui/index.js';
 import { edad, fecha, fechaHora, fechaLocal } from '@plataforma/formato.js';
 
 // Listado reutilizado por Pacientes y Historiales archivados.
@@ -43,7 +43,7 @@ export function ListadoPacientes({ estadoFijo }) {
         </div>
       </div>
     ) },
-    { clave: 'edad', titulo: 'Edad', render: p => <>{edad(p.fecha_nacimiento)}<div className="cell-sub">{fecha(p.fecha_nacimiento)}</div></> },
+    { clave: 'edad', titulo: 'Edad', render: p => <><span className="patient-age">{edad(p.fecha_nacimiento)}</span><div className="cell-sub">{fecha(p.fecha_nacimiento)}</div></> },
     { clave: 'tutor', titulo: 'Tutor principal', render: p => (p.tutor_principal ? <>
       {p.tutor_principal.nombres} {p.tutor_principal.apellidos}
       <div className="cell-sub">{p.tutor_principal.parentesco}{p.tutor_principal.telefono ? ` · ${p.tutor_principal.telefono}` : ''}</div>
@@ -56,11 +56,12 @@ export function ListadoPacientes({ estadoFijo }) {
     { clave: 'estado', titulo: 'Estado', render: p => <>
       <StatusBadge>{p.estado_historial}</StatusBadge>
       {p.fecha_archivado && <div className="cell-sub">{fechaLocal(p.fecha_archivado)}</div>}
-    </> }
+    </> },
+    { clave: 'accion', titulo: 'Acción', render: p => <Link className="btn btn-sm btn-open-record" to={`/pacientes/${p.id_paciente}`}>Abrir historial<Icon name="derecha" size={14} /></Link> }
   ];
 
   return (
-    <Card>
+    <Card titulo="Resultados de búsqueda" icono="buscar" className="patient-list">
       <FilterBar etiqueta="Buscar pacientes" onSubmit={() => actualizar({ q: texto, pagina: '' })}
         resumen={datos && <span role="status">{datos.total} {datos.total === 1 ? 'paciente' : 'pacientes'}</span>}>
         <SearchBar label="Buscar" value={texto} onChange={setTexto}
@@ -90,12 +91,23 @@ export function ListadoPacientes({ estadoFijo }) {
 }
 
 export default function Pacientes() {
-  const { puede } = useSesion();
+  const { api, puede } = useSesion();
+  const resumen = useCarga(() => api.panel(), [api]);
+  const clinico = puede('historial.leer');
+  const r = resumen.datos;
   return (
     <>
-      <PageHeader titulo="Pacientes" descripcion="Búsqueda y consulta de historiales pediátricos."
+      <PageHeader titulo="Pacientes" descripcion="Busca primero: si la persona ya tiene expediente, abre su historial."
         acciones={puede('pacientes.registrar') && <Link className="btn btn-primary" to="/pacientes/nuevo"><Icon name="mas" size={16} />Registrar paciente</Link>} />
+      <ErrorState error={resumen.error} onReintentar={resumen.recargar} />
+      <div className={`stats${clinico ? ' hospital-stats' : ''}`}>
+        <StatCard etiqueta="Pacientes activos" valor={r?.pacientes_activos ?? '—'} icono="pacientes" contexto="Historiales disponibles para atención" />
+        {clinico && <StatCard etiqueta="Consultas registradas" valor={r?.consultas ?? '—'} icono="consulta" tono="info" contexto="Históricos de pacientes activos y archivados" />}
+        {clinico && <StatCard etiqueta="Dosis pendientes" valor={r?.dosis_pendientes ?? '—'} icono="vacuna" tono="ok" contexto="Solo historiales activos" />}
+        <StatCard etiqueta="Historiales archivados" valor={r?.pacientes_archivados ?? '—'} icono="archivo" tono="warn" contexto="Expedientes conservados en solo lectura" />
+      </div>
       <ListadoPacientes />
+      {puede('pacientes.registrar') && <PatientCallout to="/pacientes/nuevo" />}
     </>
   );
 }

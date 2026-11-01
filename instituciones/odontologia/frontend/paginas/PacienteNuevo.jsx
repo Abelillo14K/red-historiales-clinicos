@@ -1,35 +1,27 @@
-import { Link } from 'react-router-dom';
 import { useModulo } from '@plataforma/modulos/ModuloContext.jsx';
-import { Card, FormField, FormularioVistaPrevia, Icon, PageHeader, PendienteIntegracion } from '@plataforma/ui/index.js';
+import { FormularioInstitucionalVistaPrevia } from '@plataforma/ui/index.js';
 
-// Registro de paciente: solo los datos comunes del contrato (§5.1). Formulario deshabilitado
-// y sin envío: nunca se muestra «registro guardado» ni se genera un código.
 export default function PacienteNuevo() {
   const { enlace } = useModulo();
-  return (
-    <>
-      <PageHeader titulo="Registrar paciente" descripcion="Alta de un expediente odontológico nuevo. El código lo asignará el backend."
-        acciones={<Link className="btn" to={enlace('/pacientes')}>Volver</Link>} />
-      <PendienteIntegracion compacto>El formulario está deshabilitado: no se guardará ningún dato hasta conectar el backend de la clínica.</PendienteIntegracion>
-      <FormularioVistaPrevia titulo="Registro de paciente" etiquetaEnvio="Registrar paciente">
-        <Card titulo="Datos generales" descripcion="Datos mínimos comunes a todas las instituciones.">
-          <div className="form-grid">
-            <FormField label="Nombres" required>{a => <input {...a} maxLength={255} />}</FormField>
-            <FormField label="Apellidos" required>{a => <input {...a} maxLength={255} />}</FormField>
-            <FormField label="Fecha de nacimiento" required>{a => <input {...a} type="date" />}</FormField>
-            <FormField label="Sexo" required>{a => <select {...a}><option value="">Seleccione…</option><option value="F">Femenino</option><option value="M">Masculino</option></select>}</FormField>
-          </div>
-        </Card>
-        <Card titulo="Datos propios de la clínica">
-          <div className="reserved-slot">
-            <span className="state-icon" aria-hidden="true"><Icon name="diente" size={22} /></span>
-            <div>
-              <b>Espacio reservado</b>
-              <p>Los campos específicos de la Clínica Odontológica se agregarán aquí cuando su backend defina el modelo de datos.</p>
-            </div>
-          </div>
-        </Card>
-      </FormularioVistaPrevia>
-    </>
-  );
+  return <FormularioInstitucionalVistaPrevia titulo="Registrar paciente" descripcion="Identificación, contacto y antecedentes del expediente odontológico."
+    volver={enlace('/pacientes')} etiquetaEnvio="Guardar y abrir historial" resumen={[
+      ['Institución', 'Clínica Odontológica'], ['Expediente', 'Asignación automática'], ['Secciones', '4']
+    ]} secciones={[
+      { id: 'odonto-generales', titulo: 'Datos generales', campos: [
+        { label: 'Nombres', required: true }, { label: 'Apellidos', required: true },
+        { label: 'Fecha de nacimiento', tipo: 'date', required: true }, { label: 'Sexo', opciones: ['Femenino', 'Masculino'], required: true }, { label: 'Documento de identidad' }
+      ] },
+      { id: 'odonto-contacto', titulo: 'Datos de contacto', paso: 'Contacto', campos: [
+        { label: 'Teléfono', tipo: 'tel' }, { label: 'Correo electrónico', tipo: 'email' }, { label: 'Dirección', full: true },
+        { label: 'Contacto de emergencia' }, { label: 'Teléfono de emergencia', tipo: 'tel' }
+      ] },
+      { id: 'odonto-antecedentes', titulo: 'Antecedentes y alergias', paso: 'Antecedentes', campos: [
+        { label: 'Antecedentes médicos', tipo: 'textarea' }, { label: 'Alergias conocidas', tipo: 'textarea' },
+        { label: 'Medicamentos que utiliza', tipo: 'textarea', full: true }
+      ] },
+      { id: 'odonto-atencion', titulo: 'Información odontológica', paso: 'Atención dental', campos: [
+        { label: 'Motivo de la primera atención', full: true }, { label: 'Última atención odontológica', tipo: 'date' },
+        { label: 'Observaciones iniciales', tipo: 'textarea', full: true }
+      ] }
+    ]} />;
 }

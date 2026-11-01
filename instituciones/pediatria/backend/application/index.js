@@ -66,6 +66,7 @@ function crearServicios(repos) {
     panel: {
       async resumen(actor) {
         const r = await repos.pacientes.resumen();
+        await comun.auditar(actor, 'LEER_PANEL', { recurso: 'panel' });
         if (actor.rol === 'secretaria') {
           return { pacientes_activos: r.pacientes_activos, pacientes_archivados: r.pacientes_archivados };
         }

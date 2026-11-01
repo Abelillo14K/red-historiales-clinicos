@@ -11,4 +11,4 @@ export const registro = crearRegistro([
   pediatria
 ]);
 
-export const NOMBRE_PLATAFORMA = 'Red de Historiales Clínicos';
+export const NOMBRE_PLATAFORMA = 'Red Clínica Integrada';

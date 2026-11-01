@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Red de Historiales Clínicos — plataforma compartida por las instituciones del proyecto" />
+    <meta name="description" content="Red Clínica Integrada — plataforma compartida de historiales clínicos" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#F8F6F1" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23287271'/%3E%3Cpath d='M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z' fill='white'/%3E%3C/svg%3E" />
-    <title>Red de Historiales Clínicos</title>
+    <meta name="theme-color" content="#EEF1F8" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233155F5'/%3E%3Cpath d='M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z' fill='white'/%3E%3C/svg%3E" />
+    <title>Red Clínica Integrada</title>
     <!-- Tema antes del primer pintado (misma lógica que src/plataforma/tema.js): evita el parpadeo al cargar. -->
     <script>
       (function () {
@@ -16,7 +16,7 @@
         var oscuro = t === 'oscuro' || (t === 'sistema' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
         r.setAttribute('data-tema', t);
         r.setAttribute('data-esquema', oscuro ? 'oscuro' : 'claro');
-        if (oscuro) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#10191C');
+        if (oscuro) document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0D1426');
       })();
     </script>
   </head>

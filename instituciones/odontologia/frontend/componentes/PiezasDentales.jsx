@@ -1,25 +1,38 @@
-import { Icon } from '@plataforma/ui/index.js';
+import { useState } from 'react';
+import { CamposVistaPrevia, FormularioVistaPrevia, Icon, MetricStrip } from '@plataforma/ui/index.js';
 
-// PUNTO DE EXTENSIÓN de la Clínica Odontológica: información de piezas dentales y
-// tratamientos por pieza. No se construye un odontograma mientras no exista el
-// contrato de datos que defina el compañero responsable (numeración de piezas,
-// superficies, estados, tratamientos por pieza…).
-//
-// Cuando exista, implementar aquí el componente (o un Odontograma.jsx en esta misma
-// carpeta) y conservar su uso en paginas/Expediente.jsx. No requiere cambiar la
-// plataforma compartida: es un componente más del módulo.
+// Plantilla visual: las posiciones son lugares del diseño, no identificadores
+// clínicos ni estados de piezas de un paciente. Seleccionar solo cambia el foco visual.
 export default function PiezasDentales() {
-  return (
-    <div className="reserved-slot">
-      <span className="state-icon" aria-hidden="true"><Icon name="diente" size={22} /></span>
-      <div>
-        <b>Espacio reservado para piezas dentales</b>
-        <p>Aquí se incorporará la información de piezas dentales y los tratamientos por pieza cuando el backend de la clínica defina su contrato de datos. No se muestra un odontograma provisional para no presentar una estructura clínica que todavía no existe.</p>
-        <ul className="lista">
-          <li>Componente del módulo: <code>frontend/componentes/PiezasDentales.jsx</code></li>
-          <li>Datos: operación de <code>api.js</code> definida por el backend de la clínica</li>
-        </ul>
-      </div>
+  const [posicion, setPosicion] = useState(null);
+  return <>
+    <MetricStrip items={[
+      { etiqueta: 'Evaluación dental', valor: 'Sin datos', icono: 'diente' },
+      { etiqueta: 'Tratamientos por pieza', valor: '—', icono: 'consulta' }
+    ]} />
+    <div className="dental-map" aria-label="Plantilla visual del mapa dental">
+      {['Arcada superior', 'Arcada inferior'].map((arcada, fila) => <div key={arcada}>
+        {fila > 0 && <hr className="dental-divider" />}
+        <p className="section-label">{arcada}</p>
+        <div className="dental-arch">{Array.from({ length: 8 }, (_, i) => {
+          const n = fila * 8 + i + 1;
+          return <button type="button" key={n} className="dental-piece" aria-label={`Ver posición visual ${n}`}
+            aria-pressed={posicion === n} onClick={() => setPosicion(n)}>
+            <Icon name="diente" size={30} /><small>Sin datos</small>
+          </button>;
+        })}</div>
+      </div>)}
     </div>
-  );
+    <p className="dental-legend">Plantilla de distribución. La numeración y los estados clínicos se definirán al integrar el modelo odontológico.</p>
+    <div className="dental-selection record-empty"><Icon name="diente" size={24} /><div>
+      <h3>{posicion ? `Posición visual ${posicion}` : 'Selecciona una posición del diseño'}</h3>
+      <p>El detalle de la pieza, sus superficies y tratamientos aparecerá aquí con los datos del expediente.</p>
+    </div></div>
+    <div className="mt-4"><FormularioVistaPrevia titulo="Información por pieza" etiquetaEnvio="Guardar detalle de pieza">
+      <CamposVistaPrevia campos={[
+        { label: 'Identificador de pieza' }, { label: 'Superficie', opciones: [] }, { label: 'Estado registrado', opciones: [] },
+        { label: 'Procedimiento', opciones: [] }, { label: 'Observaciones por pieza', tipo: 'textarea', full: true }
+      ]} />
+    </FormularioVistaPrevia></div>
+  </>;
 }

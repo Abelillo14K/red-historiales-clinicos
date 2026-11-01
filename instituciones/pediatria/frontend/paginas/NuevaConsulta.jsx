@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Alerta, BotonEnviar, Campo, Cargando, ErrorCarga, PageHeader, useCarga, useEnvio, useNotificar } from '@plataforma/ui/index.js';
+import { Alerta, BotonEnviar, Campo, Cargando, ErrorCarga, FormSteps, FormSummary, PageHeader, SectionHeading, useCarga, useEnvio, useNotificar } from '@plataforma/ui/index.js';
 import {
   DiagnosticosEditor, MedicamentosEditor, MedicoSelect, diagnosticoCompleto, filaVacia,
   medicamentoCompleto, medicamentoVacio, medicionParaApi, recortar, validarMedicion
@@ -85,11 +85,17 @@ export default function NuevaConsulta() {
         acciones={<Link className="btn" to={`/pacientes/${id}/consultas`}>Cancelar</Link>}>
         <div className="page-meta"><b>{paciente.nombres} {paciente.apellidos}</b><code>{paciente.id_paciente}</code></div>
       </PageHeader>
+      <FormSteps pasos={[
+        { id: 'consulta-atencion', titulo: 'Atención' }, { id: 'consulta-diagnosticos', titulo: 'Diagnósticos' },
+        { id: 'consulta-tratamiento', titulo: 'Tratamiento' }, { id: 'consulta-receta', titulo: 'Receta' }, { id: 'consulta-control', titulo: 'Crecimiento' }
+      ]} />
       <form onSubmit={enviar} noValidate>
         {envio.error && <Alerta titulo="No se pudo registrar la consulta">{envio.error.message}</Alerta>}
         {Object.keys(errores).length > 0 && <Alerta>Revise los campos marcados.</Alerta>}
-        <section className="card">
-          <h2 className="card-title">Atención</h2>
+        <div className="form-layout">
+        <div className="form-body">
+        <section className="card" id="consulta-atencion">
+          <SectionHeading numero="1" titulo="Datos de la consulta" descripcion="Médico responsable, fecha y notas de la atención." />
           <div className="form-grid">
             <MedicoSelect medicos={medicos} value={f.id_medico} onChange={v => setF({ ...f, id_medico: v })} error={errores.id_medico} />
             <Campo label="Fecha y hora" error={errores.fecha_hora} required>{a => <input {...a} type="datetime-local" max={localAhora(5)} value={f.fecha_hora} onChange={e => setF({ ...f, fecha_hora: e.target.value })} />}</Campo>
@@ -97,19 +103,20 @@ export default function NuevaConsulta() {
             <Campo label="Observaciones" full>{a => <textarea {...a} value={f.observaciones} onChange={e => setF({ ...f, observaciones: e.target.value })} maxLength={2000} />}</Campo>
           </div>
         </section>
-        <section className="card">
-          <h2 className="card-title">Diagnósticos</h2>
+        <section className="card" id="consulta-diagnosticos">
+          <SectionHeading numero="2" titulo="Diagnósticos" />
           <DiagnosticosEditor lista={diagnosticos} onChange={setDiagnosticos} error={errores.diagnosticos} />
         </section>
-        <section className="card">
-          <h2 className="card-title">Tratamiento</h2>
+        <section className="card" id="consulta-tratamiento">
+          <SectionHeading numero="3" titulo="Tratamiento" />
           {errores.tratamiento && <Alerta>{errores.tratamiento}</Alerta>}
           <div className="form-grid">
             <Campo label="Descripción del tratamiento" full>{a => <textarea {...a} value={tratamiento.descripcion} onChange={e => setTratamiento({ ...tratamiento, descripcion: e.target.value })} maxLength={255} />}</Campo>
             <Campo label="Recomendaciones" full>{a => <textarea {...a} value={tratamiento.recomendaciones} onChange={e => setTratamiento({ ...tratamiento, recomendaciones: e.target.value })} maxLength={1000} />}</Campo>
           </div>
         </section>
-        <section className="card">
+        <section className="card" id="consulta-receta">
+          <SectionHeading numero="4" titulo="Receta" />
           <label className="check"><input type="checkbox" checked={conReceta} onChange={e => setConReceta(e.target.checked)} /> <b>Emitir prescripción en esta consulta</b></label>
           {conReceta && <div className="mt-4">
             <p className="meta mb-3">Registre exactamente lo indicado por el médico. El sistema no calcula ni sugiere dosis.</p>
@@ -117,15 +124,26 @@ export default function NuevaConsulta() {
             <div className="mt-4"><MedicamentosEditor lista={receta.medicamentos} onChange={m => setReceta({ ...receta, medicamentos: m })} error={errores.receta} /></div>
           </div>}
         </section>
-        <section className="card">
+        <section className="card" id="consulta-control">
+          <SectionHeading numero="5" titulo="Control de crecimiento" />
           <label className="check"><input type="checkbox" checked={conControl} onChange={e => setConControl(e.target.checked)} /> <b>Registrar control de crecimiento en esta consulta</b></label>
           {conControl && <div className="form-grid mt-4">
             {num('peso_kg', 'Peso (kg)', 250)}{num('talla_cm', 'Talla (cm)', 250)}{num('perimetro_cefalico_cm', 'Perímetro cefálico (cm)', 100)}
           </div>}
         </section>
-        <div className="form-actions">
-          <Link className="btn" to={`/pacientes/${id}/consultas`}>Cancelar</Link>
-          <BotonEnviar enviando={envio.enviando}>Registrar consulta</BotonEnviar>
+        </div>
+        <div className="form-side">
+          <FormSummary items={[
+            ['Paciente', paciente.id_paciente],
+            ['Diagnósticos', diagnosticos.filter(diagnosticoCompleto).length],
+            ['Medicamentos', conReceta ? receta.medicamentos.filter(medicamentoCompleto).length : 0],
+            ['Crecimiento', conControl ? 'Incluido' : 'No incluido']
+          ]}>
+            <p className="summary-note">Todo se guarda en <strong>una sola operación</strong>: consulta, diagnósticos, tratamiento, receta y control incluido.</p>
+            <BotonEnviar enviando={envio.enviando} className="btn btn-primary btn-block">Registrar consulta</BotonEnviar>
+            <Link className="btn btn-block" to={`/pacientes/${id}/consultas`}>Cancelar</Link>
+          </FormSummary>
+        </div>
         </div>
       </form>
     </>

@@ -4,6 +4,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 const { iniciar, token } = require('./helpers');
+const { autenticarPeticion } = require('../backend/security');
 
 const conToken = t => ({ headers: { Authorization: `Bearer ${t}` } });
 const firmar = (payload, opciones = {}) => jwt.sign(payload, process.env.JWT_SECRET, {
@@ -35,6 +36,13 @@ describe('Tokens JWT', () => {
   test('el inicio de sesión de desarrollo valida rol y usuario', async () => {
     assert.equal((await ctx.api('POST', '/auth/dev-login', { body: { rol: 'administrador', usuario: 'a b' } })).status, 400);
     assert.equal((await ctx.api('POST', '/auth/dev-login', { body: { rol: 'medico', extra: 1 } })).status, 400);
+    const previo = process.env.JWT_SECRET;
+    try {
+      process.env.JWT_SECRET = '';
+      const r = autenticarPeticion({ headers: {} });
+      assert.equal(r.status, 503);
+      assert.equal(r.cuerpo.codigo, 'AUTENTICACION_NO_DISPONIBLE');
+    } finally { process.env.JWT_SECRET = previo; }
   });
 });
 

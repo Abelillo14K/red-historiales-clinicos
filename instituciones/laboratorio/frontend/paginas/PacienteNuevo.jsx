@@ -1,35 +1,23 @@
-import { Link } from 'react-router-dom';
 import { useModulo } from '@plataforma/modulos/ModuloContext.jsx';
-import { Card, FormField, FormularioVistaPrevia, Icon, PageHeader, PendienteIntegracion } from '@plataforma/ui/index.js';
+import { FormularioInstitucionalVistaPrevia } from '@plataforma/ui/index.js';
 
-// Registro de paciente: solo los datos comunes del contrato (§5.1). Formulario deshabilitado
-// y sin envío: nunca se muestra «registro guardado» ni se genera un código.
 export default function PacienteNuevo() {
   const { enlace } = useModulo();
-  return (
-    <>
-      <PageHeader titulo="Registrar paciente" descripcion="Alta de un paciente en el Laboratorio Clínico. El código lo asignará el backend."
-        acciones={<Link className="btn" to={enlace('/pacientes')}>Volver</Link>} />
-      <PendienteIntegracion compacto>El formulario está deshabilitado: no se guardará ningún dato hasta conectar el backend del laboratorio.</PendienteIntegracion>
-      <FormularioVistaPrevia titulo="Registro de paciente" etiquetaEnvio="Registrar paciente">
-        <Card titulo="Datos generales" descripcion="Datos mínimos comunes a todas las instituciones.">
-          <div className="form-grid">
-            <FormField label="Nombres" required>{a => <input {...a} maxLength={255} />}</FormField>
-            <FormField label="Apellidos" required>{a => <input {...a} maxLength={255} />}</FormField>
-            <FormField label="Fecha de nacimiento" required>{a => <input {...a} type="date" />}</FormField>
-            <FormField label="Sexo" required>{a => <select {...a}><option value="">Seleccione…</option><option value="F">Femenino</option><option value="M">Masculino</option></select>}</FormField>
-          </div>
-        </Card>
-        <Card titulo="Datos propios del laboratorio">
-          <div className="reserved-slot">
-            <span className="state-icon" aria-hidden="true"><Icon name="matraz" size={22} /></span>
-            <div>
-              <b>Espacio reservado</b>
-              <p>Los campos específicos del Laboratorio Clínico se agregarán aquí cuando su backend defina el modelo de datos.</p>
-            </div>
-          </div>
-        </Card>
-      </FormularioVistaPrevia>
-    </>
-  );
+  return <FormularioInstitucionalVistaPrevia titulo="Registrar paciente" descripcion="Datos del paciente, contacto e información para su atención en el laboratorio."
+    volver={enlace('/pacientes')} etiquetaEnvio="Guardar y abrir historial" resumen={[
+      ['Institución', 'Laboratorio Clínico'], ['Expediente', 'Asignación automática'], ['Secciones', '3']
+    ]} secciones={[
+      { id: 'lab-generales', titulo: 'Datos generales', campos: [
+        { label: 'Nombres', required: true }, { label: 'Apellidos', required: true }, { label: 'Documento de identidad' },
+        { label: 'Fecha de nacimiento', tipo: 'date', required: true }, { label: 'Sexo', opciones: ['Femenino', 'Masculino'], required: true }
+      ] },
+      { id: 'lab-contacto', titulo: 'Datos de contacto', paso: 'Contacto', campos: [
+        { label: 'Teléfono', tipo: 'tel' }, { label: 'Correo electrónico', tipo: 'email' }, { label: 'Dirección', full: true },
+        { label: 'Contacto de emergencia' }, { label: 'Teléfono de emergencia', tipo: 'tel' }
+      ] },
+      { id: 'lab-atencion', titulo: 'Información de atención', paso: 'Atención', campos: [
+        { label: 'Institución remitente' }, { label: 'Profesional solicitante' },
+        { label: 'Observaciones para la atención', tipo: 'textarea', full: true }
+      ] }
+    ]} />;
 }

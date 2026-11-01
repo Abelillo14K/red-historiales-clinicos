@@ -8,8 +8,10 @@ import presentacion from './presentacion.js';
 
 // Una sola función de carga para las rutas del expediente (no se vuelve a montar al cambiar de pestaña).
 const expediente = () => import('./paginas/Expediente.jsx');
+const administracion = () => import('./paginas/Administracion.jsx');
 
 const SECCIONES = {
+  resumen: 'Datos generales',
   solicitudes: 'Solicitudes', resultados: 'Resultados', historial: 'Historial de resultados', atenciones: 'Atenciones relacionadas'
 };
 
@@ -27,10 +29,16 @@ export default {
     { path: '', permiso: 'panel.ver', cargar: () => import('./paginas/Panel.jsx') },
     { path: 'pacientes', titulo: 'Pacientes', permiso: 'pacientes.listar', cargar: () => import('./paginas/Pacientes.jsx') },
     { path: 'pacientes/nuevo', titulo: 'Registrar paciente', permiso: 'pacientes.registrar', cargar: () => import('./paginas/PacienteNuevo.jsx') },
+    { path: 'pacientes/:id/archivar', titulo: 'Archivar', permiso: 'historial.archivar', cargar: () => import('./paginas/Archivar.jsx') },
     { path: 'pacientes/:id', titulo: (p, ctx) => (ctx.vistaPrevia ? 'Estructura del expediente' : p.id), permiso: 'pacientes.ver_administrativo', cargar: expediente },
     { path: 'pacientes/:id/:seccion', titulo: p => SECCIONES[p.seccion] || null, permiso: 'pacientes.ver_administrativo', cargar: expediente },
     { path: 'solicitudes', titulo: 'Solicitudes de exámenes', permiso: 'laboratorio.solicitudes.ver', cargar: () => import('./paginas/Solicitudes.jsx') },
+    { path: 'solicitudes/nueva', titulo: 'Nueva solicitud', permiso: 'laboratorio.solicitudes.crear', cargar: () => import('./paginas/NuevaSolicitud.jsx') },
     { path: 'resultados', titulo: 'Resultados', permiso: 'laboratorio.resultados.ver', cargar: () => import('./paginas/Resultados.jsx') },
+    { path: 'resultados/nuevo', titulo: 'Registrar resultado', permiso: 'laboratorio.resultados.registrar', cargar: () => import('./paginas/RegistrarResultado.jsx') },
+    { path: 'resultados/:resultado', titulo: 'Detalle del resultado', permiso: 'laboratorio.resultados.ver', cargar: () => import('./paginas/DetalleResultado.jsx') },
+    { path: 'catalogos', titulo: 'Catálogos', permiso: 'catalogos.ver', cargar: administracion },
+    { path: 'bitacora', titulo: 'Bitácora de acceso', permiso: 'auditoria.leer', cargar: administracion },
     { path: 'archivados', titulo: 'Historiales archivados', permiso: 'historial.leer_archivados', cargar: () => import('./paginas/Archivados.jsx') }
   ],
 
@@ -39,6 +47,8 @@ export default {
     { to: '/pacientes', etiqueta: 'Pacientes', icono: 'pacientes', permiso: 'pacientes.listar' },
     { to: '/solicitudes', etiqueta: 'Solicitudes de exámenes', icono: 'matraz', permiso: 'laboratorio.solicitudes.ver' },
     { to: '/resultados', etiqueta: 'Resultados', icono: 'resultado', permiso: 'laboratorio.resultados.ver' },
+    { to: '/catalogos', etiqueta: 'Catálogos', icono: 'consulta', permiso: 'catalogos.ver' },
+    { to: '/bitacora', etiqueta: 'Bitácora de acceso', icono: 'auditoria', permiso: 'auditoria.leer' },
     { to: '/archivados', etiqueta: 'Historiales archivados', icono: 'archivo', permiso: 'historial.leer_archivados', grupo: 'Administración' }
   ],
 

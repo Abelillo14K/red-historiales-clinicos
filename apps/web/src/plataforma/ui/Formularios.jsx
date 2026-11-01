@@ -52,7 +52,7 @@ export function FilterBar({ children, resumen, onSubmit, etiqueta = 'Filtros' })
 // Formulario en vista previa: los campos se muestran deshabilitados y el envío está
 // bloqueado (no hay manejador que simule guardar). Se reemplaza por un formulario real
 // con useEnvio() cuando la institución conecte su API.
-export function FormularioVistaPrevia({ titulo = 'Formulario en vista previa', etiquetaEnvio = 'Guardar', children }) {
+export function FormularioVistaPrevia({ titulo = 'Formulario en vista previa', etiquetaEnvio = 'Guardar', children, mostrarAcciones = true }) {
   const id = useId();
   return (
     <form className="preview-form" aria-describedby={`${id}-aviso`} onSubmit={e => e.preventDefault()} noValidate>
@@ -60,10 +60,10 @@ export function FormularioVistaPrevia({ titulo = 'Formulario en vista previa', e
       <fieldset disabled className="fieldset-plain">
         <legend className="sr-only">{titulo}</legend>
         {children}
-        <div className="form-actions">
+        {mostrarAcciones && <div className="form-actions">
           <span className="meta form-actions-note"><Icon name="enchufe" size={15} /> Se habilitará al conectar el backend</span>
           <button type="submit" className="btn btn-primary">{etiquetaEnvio}</button>
-        </div>
+        </div>}
       </fieldset>
     </form>
   );

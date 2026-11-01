@@ -7,6 +7,8 @@ export { FormField, BotonEnviar, SearchBar, FilterBar, FormularioVistaPrevia } f
 export { StatusBadge, DataTable, TablaPendiente, StatCard, KeyValue, Pager } from './Datos.jsx';
 export { PageHeader, Card, Tabs } from './Pagina.jsx';
 export { useCarga, useEnvio } from './hooks.js';
+export { SectionHeading, FormSteps, FormSummary, PatientCallout } from './FlujoClinico.jsx';
+export { SectionIntro, MetricStrip, ContextPanel, CamposVistaPrevia, FormularioInstitucionalVistaPrevia, EncabezadoExpedienteVistaPrevia, ArchivoInstitucionalVistaPrevia, AgendaInstitucionalVistaPrevia, AdministracionInstitucionalVistaPrevia } from './VistasInstitucionales.jsx';
 
 // Nombres anteriores, conservados para el código existente del módulo pediátrico.
 export { LoadingState as Cargando, ErrorState as ErrorCarga, EmptyState as Vacio } from './Estados.jsx';

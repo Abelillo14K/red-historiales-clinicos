@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSesion } from '@plataforma/sesion/SesionContext.jsx';
-import { Alerta, BotonEnviar, Campo, Card, Dialogo, EmptyState, ErrorState, FilterBar, FormField, Icon, LoadingState, useCarga, useEnvio, useNotificar } from '@plataforma/ui/index.js';
+import { Alerta, BotonEnviar, Campo, Card, ContextPanel, Dialogo, EmptyState, ErrorState, FilterBar, FormField, Icon, LoadingState, MetricStrip, SectionIntro, useCarga, useEnvio, useNotificar } from '@plataforma/ui/index.js';
 import { MedicamentosEditor, medicamentoCompleto, medicamentoVacio, recortar } from '../../componentes/ClinicoCampos.jsx';
 import { fechaHora, fechaLocal } from '@plataforma/formato.js';
 
@@ -46,7 +46,14 @@ export default function Consultas({ paciente, editable }) {
 
   return (
     <>
-      <Card titulo="Historial de consultas" descripcion="Orden cronológico, de la más reciente a la más antigua.">
+      <SectionIntro titulo="Consultas y evolución" descripcion="Todas las atenciones, con sus diagnósticos, tratamientos y prescripciones." icono="consulta" />
+      <MetricStrip items={[
+        { etiqueta: 'Consultas en el historial', valor: paciente.consultas.length, icono: 'consulta' },
+        { etiqueta: 'Consultas en esta vista', valor: datos?.length, icono: 'calendario' },
+        { etiqueta: 'Modo del expediente', valor: puedeEscribir ? 'Editable' : 'Solo lectura', icono: 'auditoria' }
+      ]} />
+      <div className="workspace-grid"><div className="workspace-main">
+      <Card titulo="Historial de consultas" icono="calendario" descripcion="Orden cronológico, de la más reciente a la más antigua.">
         <FilterBar etiqueta="Filtrar consultas por fecha" resumen={datos && <span role="status">{datos.length} {datos.length === 1 ? 'consulta' : 'consultas'}{filtrado ? ' en el rango' : ''}</span>}>
           <FormField label="Desde">{a => <input {...a} type="date" value={rango.desde} max={rango.hasta || undefined} onChange={e => setRango(r => ({ ...r, desde: e.target.value }))} />}</FormField>
           <FormField label="Hasta">{a => <input {...a} type="date" value={rango.hasta} min={rango.desde || undefined} onChange={e => setRango(r => ({ ...r, hasta: e.target.value }))} />}</FormField>
@@ -124,6 +131,13 @@ export default function Consultas({ paciente, editable }) {
           })}
         </ol>
       )}
+      </div><aside className="workspace-aside" aria-label="Contexto de consultas">
+        <ContextPanel titulo="Esta vista" icono="consulta" items={[
+          ['Paciente', paciente.id_paciente], ['Rango', filtrado ? 'Filtro aplicado' : 'Historial completo'],
+          ['Orden', 'Más reciente primero']
+        ]} />
+        <ContextPanel titulo="Continuidad del historial" icono="auditoria" descripcion="Cada consulta conserva el profesional responsable, los medicamentos registrados y las versiones anteriores de sus tratamientos." />
+      </aside></div>
       <DialogoDiagnostico estado={dialogo?.tipo === 'dx' ? dialogo : null} paciente={paciente} onCerrar={cerrar} onHecho={hecho} />
       <DialogoTratamiento estado={dialogo?.tipo === 'tx' ? dialogo : null} paciente={paciente} onCerrar={cerrar} onHecho={hecho} />
       <DialogoPrescripcion abierto={dialogo?.tipo === 'rx'} consultas={dialogo ? [dialogo.consulta] : []} paciente={paciente} onCerrar={cerrar} onHecho={hecho} />

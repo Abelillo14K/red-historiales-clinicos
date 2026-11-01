@@ -1,4 +1,4 @@
-import { PageHeader, PendienteIntegracion } from '@plataforma/ui/index.js';
+import { PageHeader, PendienteIntegracion, SectionIntro } from '@plataforma/ui/index.js';
 import { ListadoPacientes } from './Pacientes.jsx';
 
 export default function Archivados() {
@@ -6,6 +6,7 @@ export default function Archivados() {
     <>
       <PageHeader titulo="Historiales archivados" descripcion="Expedientes dados de baja. Se conservan completos y en modo de solo lectura." />
       <PendienteIntegracion compacto />
+      <SectionIntro titulo="Expedientes conservados" icono="archivo" descripcion="Búsqueda de historiales hospitalarios en modo de solo lectura." />
       <ListadoPacientes archivados />
     </>
   );

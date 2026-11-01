@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useModulo } from '@plataforma/modulos/ModuloContext.jsx';
-import { Card, Icon, KeyValue, PendienteIntegracion, TablaPendiente, Tabs } from '@plataforma/ui/index.js';
+import { Card, ContextPanel, Icon, KeyValue, MetricStrip, PendienteIntegracion, SectionIntro, TablaPendiente, Tabs } from '@plataforma/ui/index.js';
 import EncabezadoExpediente from '../componentes/EncabezadoExpediente.jsx';
 import VisorResultado from '../componentes/VisorResultado.jsx';
 
@@ -30,36 +30,44 @@ export default function Expediente() {
     <>
       <EncabezadoExpediente id={id} vistaPrevia={vistaPrevia} />
       <PendienteIntegracion compacto />
+      <div className="workspace-grid"><div className="workspace-main">
       <Tabs etiqueta="Secciones del expediente" actual={actual.clave} pestanas={PESTANAS}
         onCambiar={k => navegar(enlace(k === 'resumen' ? base : `${base}/${k}`))} />
       <div role="tabpanel" aria-label={actual.titulo}>
+        <SectionIntro titulo={actual.titulo} descripcion={actual.descripcion || 'Identificación y contexto de atención del paciente.'} icono={actual.clave === 'resultados' ? 'resultado' : 'matraz'} />
         {actual.clave === 'resumen' ? <Resumen /> : <>
-          <Card titulo={actual.titulo} descripcion={actual.descripcion}
+          <Card titulo={actual.titulo} icono={actual.visor ? 'resultado' : 'matraz'} descripcion={actual.descripcion}
             acciones={actual.accion && <button type="button" className="btn btn-primary btn-sm" disabled title="Disponible al conectar el backend"><Icon name="mas" size={16} />{actual.accion}</button>}>
             <TablaPendiente titulo={actual.titulo} columnas={comoColumnas(actual.columnas)} />
           </Card>
-          {actual.visor && <Card titulo="Detalle del resultado"><VisorResultado /></Card>}
+          {actual.visor && <Card titulo="Detalle del resultado" icono="resultado"><VisorResultado /></Card>}
         </>}
       </div>
+      </div><aside className="workspace-aside" aria-label="Resumen de laboratorio">
+        <ContextPanel titulo="Estado de atención" icono="matraz" items={[
+          ['Solicitudes pendientes', '—'], ['Muestras recibidas', '—'], ['Resultados emitidos', '—']
+        ]} />
+        <ContextPanel titulo="Último informe" icono="resultado" descripcion="Se mostrará el examen, su fecha de emisión y el profesional responsable." />
+        <ContextPanel titulo="Seguimiento de muestras" icono="auditoria" descripcion="Solicitud, recepción, análisis y validación compartirán la misma referencia del expediente." />
+      </aside></div>
     </>
   );
 }
 
 function Resumen() {
   return (
-    <div className="grid grid-2">
-      <Card titulo="Datos generales">
+    <>
+      <MetricStrip items={[
+        { etiqueta: 'Solicitudes', icono: 'matraz' }, { etiqueta: 'Resultados', icono: 'resultado' }, { etiqueta: 'Atenciones relacionadas', icono: 'consulta' }
+      ]} />
+      <Card titulo="Datos generales" icono="usuario">
         <KeyValue items={[['Nombres', '—'], ['Apellidos', '—'], ['Fecha de nacimiento', '—'], ['Sexo', '—'], ['Estado del historial', '—']]} />
       </Card>
-      <Card titulo="Información propia del laboratorio">
-        <div className="reserved-slot">
-          <span className="state-icon" aria-hidden="true"><Icon name="matraz" size={22} /></span>
-          <div>
-            <b>Espacio reservado</b>
-            <p>Datos institucionales del paciente en el laboratorio que defina su backend. Se mostrarán aquí al conectarlo.</p>
-          </div>
-        </div>
+      <Card titulo="Contacto y origen de atención" icono="pacientes">
+        <KeyValue items={[
+          ['Teléfono', '—'], ['Correo electrónico', '—'], ['Institución remitente', '—'], ['Profesional solicitante', '—'], ['Observaciones', '—']
+        ]} />
       </Card>
-    </div>
+    </>
   );
 }

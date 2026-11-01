@@ -15,20 +15,17 @@ export default function Sidebar({ id, contraida, onContraer }) {
   const { modulo, puede, enlace } = useModulo();
   let grupoPrevio;
   return (
-    <aside className="sidebar" id={id} aria-label="Navegación principal">
+    <aside className="sidebar mockup-dark" id={id} aria-label="Navegación principal">
       <NavLink to={enlace('/')} className="brand" title={contraida ? NOMBRE_PLATAFORMA : undefined}>
         <Logo />
-        <span><b>{NOMBRE_PLATAFORMA}</b><small>Historiales clínicos</small></span>
+        <span><b>Red Clínica</b><small>Historial clínico</small></span>
       </NavLink>
-      <div className="sidebar-institution" title={contraida ? modulo.nombre : undefined}>
-        <span className="inst-mark" aria-hidden="true">{modulo.sigla}</span>
-        <span><small>Institución</small><b>{modulo.nombre}</b></span>
-      </div>
       {/* Regreso al portal: solo navegación, conserva la sesión y el tema. */}
       <Link to={RUTA_PORTAL} className="sidebar-portal" title={contraida ? 'Volver a instituciones' : undefined}>
         <Icon name="izquierda" /><span className="nav-label">Volver a instituciones</span>
       </Link>
       <nav className="nav" aria-label={`Secciones de ${modulo.nombre}`}>
+        <div className="nav-title nav-title-first">Menú</div>
         {(modulo.navegacion || []).filter(e => puede(e.permiso)).map(e => {
           const titulo = e.grupo && e.grupo !== grupoPrevio ? <div className="nav-title" key={`g-${e.grupo}`}>{e.grupo}</div> : null;
           grupoPrevio = e.grupo;
@@ -40,6 +37,10 @@ export default function Sidebar({ id, contraida, onContraer }) {
         })}
       </nav>
       <div className="sidebar-foot">
+        <div className="sidebar-institution" title={contraida ? modulo.nombre : undefined}>
+          <span className="inst-mark" aria-hidden="true">{modulo.sigla}</span>
+          <span><small>Institución</small><b>{modulo.nombre}</b></span>
+        </div>
         <p className="sidebar-note">Proyecto académico · datos ficticios · el sistema no emite indicaciones clínicas</p>
         {onContraer && (
           <button type="button" className="collapse-btn" onClick={onContraer} aria-expanded={!contraida} aria-controls={id}

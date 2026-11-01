@@ -21,22 +21,29 @@ instituciones/laboratorio/
     paginas/
       Panel.jsx                  indicadores (—), solicitudes recientes, accesos rápidos
       Pacientes.jsx              registro y búsqueda (también lo usa Archivados)
-      PacienteNuevo.jsx          registro con los datos comunes (formulario deshabilitado)
+      PacienteNuevo.jsx          registro de tres secciones y resumen lateral (deshabilitado)
       Expediente.jsx             pestañas: datos generales, solicitudes, resultados, historial de resultados, atenciones relacionadas
       Solicitudes.jsx            solicitudes de exámenes (extensión propuesta)
-      Resultados.jsx             resultados de laboratorio + visor
+      NuevaSolicitud.jsx         paciente, exámenes, muestra e indicaciones (diseño)
+      Resultados.jsx             listado e ingreso a registro e informe
+      RegistrarResultado.jsx     origen, parámetros y validación (diseño)
+      DetalleResultado.jsx       plantilla de informe y contexto lateral
+      Archivar.jsx               motivos de baja, detalles y confirmación (diseño)
+      Administracion.jsx         catálogos y bitácora
       Archivados.jsx             historiales archivados
     componentes/
       EncabezadoExpediente.jsx   encabezado del expediente y datos clave
-      VisorResultado.jsx         PUNTO DE EXTENSIÓN: presentación de resultados por tipo de examen
+      VisorResultado.jsx         plantilla de informe; renderizadores por tipo de examen y vista genérica
 ```
 
-Rutas: `/`, `/pacientes`, `/pacientes/nuevo`, `/pacientes/:id[/:seccion]`, `/solicitudes`, `/resultados`, `/archivados`.
-Permisos: comunes y `laboratorio.solicitudes.ver`, `laboratorio.resultados.ver` (propuestas).
+Rutas: `/`, `/pacientes`, `/pacientes/nuevo`, `/pacientes/:id[/:seccion]`, `/pacientes/:id/archivar`, `/solicitudes`, `/solicitudes/nueva`, `/resultados`, `/resultados/nuevo`, `/resultados/:resultado`, `/catalogos`, `/bitacora`, `/archivados`.
+Permisos: comunes y extensiones `laboratorio.solicitudes.*` / `laboratorio.resultados.*` (propuestas; roles y permisos definitivos corresponden a su backend).
 
 ## Resultados con estructura variable
 
 No se definió un esquema rígido de resultados. `frontend/componentes/VisorResultado.jsx` expone `RENDERIZADORES = { <tipo_examen>: Componente }`:
+
+Sin un resultado seleccionado muestra una plantilla con identificación, parámetros, observaciones y validación, sin valores, unidades o referencias clínicas inventadas.
 
 - Registre un componente por tipo de examen cuando defina sus campos, unidades, rangos y validaciones.
 - Un tipo sin componente propio se muestra de forma genérica (pares campo–valor), sin perder datos.
@@ -45,3 +52,7 @@ No se definió un esquema rígido de resultados. `frontend/componentes/VisorResu
 ## Qué falta (lo decide el responsable del Laboratorio)
 
 Backend propio con `GET /api/sesion`, `roles` y permisos reales, operaciones de `api.js`, modelo de solicitudes y resultados, y el registro en `registro.js` (`docs/FRONTEND_EQUIPO.md` §7). Sin datos ficticios ni peticiones mientras tanto.
+
+## Recorrido del diseño
+
+`/vista-previa/laboratorio_clinico/pacientes` → estructura del expediente → pestañas y diseños de solicitud/archivo. Desde Solicitudes se abre «Ver diseño de solicitud»; desde Resultados, «Ver diseño de registro» y «Ver diseño del informe». Todas las páginas comparten los patrones de `docs/DISENO.md`.

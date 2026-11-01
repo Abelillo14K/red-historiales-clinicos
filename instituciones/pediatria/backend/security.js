@@ -23,7 +23,7 @@ function verificarToken(token) {
 
 // Verifica el Bearer de la petición: { payload } o { status, cuerpo } con el error HTTP.
 function autenticarPeticion(req) {
-  if (!secretoValido()) return { status: 503, cuerpo: { error: 'Configurar JWT_SECRET (mínimo 32 caracteres)' } };
+  if (!secretoValido()) return { status: 503, cuerpo: { error: 'Servicio de autenticación no configurado', codigo: 'AUTENTICACION_NO_DISPONIBLE' } };
   const m = /^Bearer ([A-Za-z0-9._-]{20,4096})$/.exec(req.headers.authorization || '');
   if (!m) return { status: 401, cuerpo: { error: 'Token Bearer requerido', codigo: 'NO_AUTENTICADO' } };
   try {
