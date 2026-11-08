@@ -1,7 +1,5 @@
 // Manifiesto del módulo Laboratorio Clínico (contrato de módulos v1, plataforma/modulos/contrato.js).
-// ESTADO: preparado visualmente, PENDIENTE de integración. No está en registro.js, así que
-// la aplicación real no lo carga. Se revisa en la vista previa de desarrollo:
-//   npm run web:dev  →  http://localhost:5173/vista-previa/laboratorio_clinico
+// Conectado a su backend PostgreSQL (instituciones/laboratorio/backend) y registrado en registro.js.
 // Guía: docs/GUIA_EQUIPO.md · instituciones/laboratorio/README.md.
 import { crearApiLaboratorio } from './api.js';
 import presentacion from './presentacion.js';
@@ -11,29 +9,28 @@ const expediente = () => import('./paginas/Expediente.jsx');
 const administracion = () => import('./paginas/Administracion.jsx');
 
 const SECCIONES = {
-  resumen: 'Datos generales',
-  solicitudes: 'Solicitudes', resultados: 'Resultados', historial: 'Historial de resultados', atenciones: 'Atenciones relacionadas'
+  resumen: 'Datos generales', solicitudes: 'Solicitudes', resultados: 'Resultados', historial: 'Historial de resultados'
 };
 
 export default {
   contrato: 1,
   institucion: 'laboratorio_clinico',    // igual al claim `institucion` del JWT que emita su backend
   ...presentacion,                       // nombre, sigla, descripción e icono (presentacion.js)
-  // Los roles y su tabla de permisos los define el backend del Laboratorio; no se inventan aquí.
-  roles: {},
+  // Mismos roles que backend/permisos.js; los permisos de cada rol llegan en /api/sesion.
+  roles: { recepcion: 'Recepción', tecnico: 'Técnico de laboratorio', bioquimico: 'Bioquímico', administrador: 'Administrador' },
   crearApi: crearApiLaboratorio,
 
-  // Permisos: los comunes de la plataforma (docs/GUIA_EQUIPO.md §9) y, para
-  // operaciones exclusivas, el prefijo `laboratorio.` (propuesta a confirmar con su backend).
+  // Permisos: los comunes de la plataforma (docs/GUIA_EQUIPO.md §9) y los exclusivos con prefijo `laboratorio.`.
   rutas: [
     { path: '', permiso: 'panel.ver', cargar: () => import('./paginas/Panel.jsx') },
     { path: 'pacientes', titulo: 'Pacientes', permiso: 'pacientes.listar', cargar: () => import('./paginas/Pacientes.jsx') },
     { path: 'pacientes/nuevo', titulo: 'Registrar paciente', permiso: 'pacientes.registrar', cargar: () => import('./paginas/PacienteNuevo.jsx') },
     { path: 'pacientes/:id/archivar', titulo: 'Archivar', permiso: 'historial.archivar', cargar: () => import('./paginas/Archivar.jsx') },
-    { path: 'pacientes/:id', titulo: (p, ctx) => (ctx.vistaPrevia ? 'Estructura del expediente' : p.id), permiso: 'pacientes.ver_administrativo', cargar: expediente },
+    { path: 'pacientes/:id', titulo: p => p.id, permiso: 'pacientes.ver_administrativo', cargar: expediente },
     { path: 'pacientes/:id/:seccion', titulo: p => SECCIONES[p.seccion] || null, permiso: 'pacientes.ver_administrativo', cargar: expediente },
     { path: 'solicitudes', titulo: 'Solicitudes de exámenes', permiso: 'laboratorio.solicitudes.ver', cargar: () => import('./paginas/Solicitudes.jsx') },
     { path: 'solicitudes/nueva', titulo: 'Nueva solicitud', permiso: 'laboratorio.solicitudes.crear', cargar: () => import('./paginas/NuevaSolicitud.jsx') },
+    { path: 'solicitudes/:solicitud', titulo: p => `Solicitud ${p.solicitud}`, permiso: 'laboratorio.solicitudes.ver', cargar: () => import('./paginas/DetalleSolicitud.jsx') },
     { path: 'resultados', titulo: 'Resultados', permiso: 'laboratorio.resultados.ver', cargar: () => import('./paginas/Resultados.jsx') },
     { path: 'resultados/nuevo', titulo: 'Registrar resultado', permiso: 'laboratorio.resultados.registrar', cargar: () => import('./paginas/RegistrarResultado.jsx') },
     { path: 'resultados/:resultado', titulo: 'Detalle del resultado', permiso: 'laboratorio.resultados.ver', cargar: () => import('./paginas/DetalleResultado.jsx') },
