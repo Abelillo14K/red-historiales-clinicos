@@ -6,9 +6,10 @@
   "scripts": {
     "start": "node instituciones/pediatria/backend/server.js",
     "dev": "node --watch instituciones/pediatria/backend/server.js",
-    "test": "npm run test:plataforma && npm run test:pediatria",
+    "test": "npm run test:plataforma && npm run test:pediatria && npm run test:laboratorio",
     "test:plataforma": "node --import ./tests/soporte/alias-frontend.mjs --test tests/*.test.js",
     "test:pediatria": "node --test instituciones/pediatria/tests/*.test.js",
+    "test:laboratorio": "node --test instituciones/laboratorio/tests/*.test.js",
     "web:install": "npm --prefix apps/web install",
     "web:ci": "npm --prefix apps/web ci",
     "web:dev": "npm --prefix apps/web run dev",
