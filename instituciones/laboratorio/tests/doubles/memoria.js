@@ -20,14 +20,26 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
     .filter(tp => tp.id_tipo_examen === id_tipo_examen)
     .sort((a, b) => a.orden_presentacion - b.orden_presentacion)
     .map(tp => ({ ...db.parametros.find(p => p.id_parametro === tp.id_parametro), ...tp }));
+  const nombreDe = p => `${p.nombres} ${p.apellidos}`;
+  const pacienteDe = id => db.pacientes.find(p => p.id_paciente === id);
+  const detallesDe = id_resultado => db.detalles.filter(d => d.id_resultado === id_resultado).map(({ id_resultado: _, ...d }) => {
+    const p = db.parametros.find(x => x.id_parametro === d.id_parametro);
+    return { ...d, parametro: p.nombre, unidad_medida: p.unidad_medida ?? null };
+  });
   const resultadoDe = id_examen => {
     const r = db.resultados.find(x => x.id_examen === id_examen);
-    return r ? { ...r, detalles: db.detalles.filter(d => d.id_resultado === r.id_resultado) } : null;
+    if (!r) return null;
+    const { id_examen: _, ...resto } = r;
+    return { ...resto, detalles: detallesDe(r.id_resultado) };
   };
   const examenCompleto = e => ({
     ...e, tipo_examen: db.tiposExamen.find(t => t.id_tipo_examen === e.id_tipo_examen)?.nombre, resultado: resultadoDe(e.id_examen)
   });
-  const solicitudCompleta = s => ({ ...s, examenes: db.examenes.filter(e => e.id_solicitud === s.id_solicitud).map(examenCompleto) });
+  const solicitudCompleta = s => ({
+    ...s, paciente: nombreDe(pacienteDe(s.id_paciente)),
+    medico: db.medicos.find(m => m.id_medico === s.id_medico)?.nombre_completo ?? null,
+    examenes: db.examenes.filter(e => e.id_solicitud === s.id_solicitud).map(examenCompleto)
+  });
   const porFechaDesc = campo => (a, b) => b[campo] - a[campo];
 
   const pacientes = {
@@ -76,7 +88,8 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
       return copia(s ? solicitudCompleta(s) : null);
     },
     async listar({ estado, limite, saltar }) {
-      const items = db.solicitudes.filter(s => !estado || s.estado === estado).sort(porFechaDesc('fecha_solicitud'));
+      const items = db.solicitudes.filter(s => !estado || s.estado === estado).sort(porFechaDesc('fecha_solicitud'))
+        .map(s => { const { examenes: _, ...resto } = solicitudCompleta(s); return resto; });
       return copia(pagina(items, { limite, saltar }));
     },
     async dePaciente(idPaciente) {
@@ -106,7 +119,9 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
       return copia({
         id_examen, id_solicitud: s.id_solicitud, estado_solicitud: s.estado, id_paciente: p.id_paciente,
         estado_historial: p.estado_historial, tipo_examen: { id_tipo_examen: t.id_tipo_examen, nombre: t.nombre },
-        parametros: parametrosDe(t.id_tipo_examen), resultado: resultadoDe(id_examen)
+        parametros: parametrosDe(t.id_tipo_examen),
+        resultado: db.resultados.some(r => r.id_examen === id_examen)
+          ? (({ id_resultado, estado, detalles }) => ({ id_resultado, estado, detalles }))(resultadoDe(id_examen)) : null
       });
     },
     async guardar(idExamen, datos, detalles) {
@@ -138,10 +153,24 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
       const r = db.resultados.find(x => x.id_resultado === String(id));
       if (!r) return null;
       const ctx = await resultados.contexto({ id_examen: r.id_examen });
-      return copia({ ...resultadoDe(r.id_examen), id_paciente: ctx.id_paciente, id_solicitud: ctx.id_solicitud, tipo_examen: ctx.tipo_examen, parametros: ctx.parametros });
+      const per = db.personal.find(x => x.id_personal === r.id_personal_valida);
+      return copia({
+        ...resultadoDe(r.id_examen), id_examen: r.id_examen, validado_por: per ? nombreDe(per) : null,
+        id_solicitud: ctx.id_solicitud, id_paciente: ctx.id_paciente, paciente: nombreDe(pacienteDe(ctx.id_paciente)),
+        codigo_muestra: db.examenes.find(e => e.id_examen === r.id_examen).codigo_muestra,
+        tipo_examen: ctx.tipo_examen, parametros: ctx.parametros
+      });
     },
     async listar({ estado, limite, saltar }) {
-      return copia(pagina(db.resultados.filter(r => !estado || r.estado === estado).sort(porFechaDesc('fecha_analisis')), { limite, saltar }));
+      const items = db.resultados.filter(r => !estado || r.estado === estado).sort(porFechaDesc('fecha_analisis')).map(r => {
+        const e = db.examenes.find(x => x.id_examen === r.id_examen);
+        const p = pacienteDe(db.solicitudes.find(s => s.id_solicitud === e.id_solicitud).id_paciente);
+        return {
+          id_resultado: r.id_resultado, id_examen: r.id_examen, estado: r.estado, fecha_analisis: r.fecha_analisis, fecha_emision: r.fecha_emision,
+          tipo_examen: db.tiposExamen.find(t => t.id_tipo_examen === e.id_tipo_examen).nombre, id_paciente: p.id_paciente, paciente: nombreDe(p)
+        };
+      });
+      return copia(pagina(items, { limite, saltar }));
     }
   };
 
