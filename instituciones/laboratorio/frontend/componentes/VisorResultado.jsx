@@ -1,41 +1,45 @@
-import { Icon, KeyValue, StatusBadge, TablaPendiente } from '@plataforma/ui/index.js';
+import { DataTable, KeyValue, StatusBadge } from '@plataforma/ui/index.js';
+import { fechaHora } from '@plataforma/formato.js';
+import { TONO_ESTADO, referencia, valorDe } from './formato.js';
 
-// PUNTO DE EXTENSIÓN del Laboratorio Clínico: presentación de resultados.
-// Los resultados tienen estructuras DISTINTAS según el tipo de examen, por eso aquí no
-// se fija un esquema. El compañero responsable registra un componente por tipo de
-// examen cuando defina sus campos, validaciones y formatos:
-//
-//   import HematologiaResultado from './resultados/Hematologia.jsx';
-//   export const RENDERIZADORES = { hematologia: HematologiaResultado };
-//
-// Un tipo sin componente propio se presenta de forma genérica (pares campo–valor).
+// PUNTO DE EXTENSIÓN: presentación de resultados por tipo de examen.
+// La estructura de cada resultado la definen los parámetros de su tipo en el catálogo, así que
+// la vista genérica sirve para todos. Un tipo puede registrar una presentación propia por su nombre:
+//   export const RENDERIZADORES = { 'Hematología completa': HematologiaResultado };
 export const RENDERIZADORES = {};
 
-export default function VisorResultado({ tipo, resultado }) {
-  if (!resultado) {
-    return (
-      <div className="report-preview">
-        <div className="report-identity">
-          <div><b>Informe de laboratorio</b><small>Sin resultado seleccionado</small></div>
-          <span className="state-icon" aria-hidden="true"><Icon name="matraz" size={24} /></span>
-        </div>
-        <KeyValue items={[
-          ['Paciente', '—'], ['Expediente', '—'], ['Examen', '—'], ['Muestra', '—'], ['Fecha de análisis', '—'], ['Fecha de emisión', '—']
-        ]} />
-        <StatusBadge tono="info">Pendiente de integración</StatusBadge>
-        <TablaPendiente titulo="Parámetros del informe" columnas={['Parámetro', 'Resultado', 'Unidad', 'Referencia'].map(t => ({ clave: t, titulo: t }))}
-          mensaje="Los parámetros, unidades y referencias se mostrarán según el tipo de examen definido por el laboratorio." />
-        <div className="record-empty"><Icon name="consulta" /><div><h3>Observaciones del informe</h3><p>Sin datos de un resultado. Esta plantilla no contiene valores ni interpretaciones clínicas.</p></div></div>
-        <div className="report-signature"><div><span className="meta">Profesional responsable</span><b>—</b></div><div><span className="meta">Validación y emisión</span><b>—</b></div></div>
-      </div>
-    );
-  }
-  const Propio = RENDERIZADORES[tipo];
+// resultado: respuesta de GET /api/resultados/:id (parámetros del tipo + valores registrados).
+export default function VisorResultado({ resultado }) {
+  const Propio = RENDERIZADORES[resultado.tipo_examen.nombre];
   return Propio ? <Propio resultado={resultado} /> : <ResultadoGenerico resultado={resultado} />;
 }
 
-// Presentación sin esquema: cada campo del objeto como par campo–valor.
-function ResultadoGenerico({ resultado }) {
-  const texto = v => (v === null || v === undefined ? '—' : typeof v === 'object' ? JSON.stringify(v) : String(v));
-  return <KeyValue items={Object.entries(resultado).map(([k, v]) => [k, texto(v)])} />;
+function ResultadoGenerico({ resultado: r }) {
+  const valores = new Map(r.detalles.map(d => [d.id_parametro, d]));
+  const filas = r.parametros.map(p => ({ ...p, detalle: valores.get(p.id_parametro) }));
+  return (
+    <div className="report-preview">
+      <div className="report-identity">
+        <div><b>Informe de laboratorio · {r.tipo_examen.nombre}</b><small>{r.paciente} · expediente {r.id_paciente}</small></div>
+        <StatusBadge tono={TONO_ESTADO[r.estado]}>{r.estado}</StatusBadge>
+      </div>
+      <KeyValue items={[
+        ['Solicitud', r.id_solicitud], ['Código de muestra', r.codigo_muestra],
+        ['Fecha de análisis', fechaHora(r.fecha_analisis)], ['Fecha de emisión', r.fecha_emision ? fechaHora(r.fecha_emision) : 'Sin emitir']
+      ]} />
+      <DataTable titulo="Parámetros del informe" filas={filas} claveFila={f => f.id_parametro} resaltar={f => f.detalle?.fuera_de_rango} columnas={[
+        { clave: 'parametro', titulo: 'Parámetro', principal: true, render: f => f.nombre },
+        { clave: 'valor', titulo: 'Resultado', render: f => (f.detalle ? valorDe(f.detalle) : <span className="meta">Pendiente</span>) },
+        { clave: 'unidad', titulo: 'Unidad', render: f => f.unidad_medida || '—' },
+        { clave: 'referencia', titulo: 'Referencia', render: f => referencia(f) },
+        { clave: 'marca', titulo: 'Fuera de rango', render: f => (f.detalle?.fuera_de_rango ? <StatusBadge tono="warn" sinPunto>Sí</StatusBadge> : f.detalle ? 'No' : '—') }
+      ]} />
+      {r.observaciones && <p><b>Observaciones:</b> {r.observaciones}</p>}
+      <p className="meta">«Fuera de rango» compara con la referencia del catálogo; no es una interpretación clínica.</p>
+      <div className="report-signature">
+        <div><span className="meta">Validado por</span><b>{r.validado_por || '—'}</b></div>
+        <div><span className="meta">Estado</span><b>{r.estado}</b></div>
+      </div>
+    </div>
+  );
 }
