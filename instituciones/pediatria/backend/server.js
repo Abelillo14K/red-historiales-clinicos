@@ -6,6 +6,7 @@ const { crearRepositoriosMongo, asegurarIndices, exigirIndicesEsenciales } = req
 const { crearServicios } = require('./application');
 const { crearApp, devLoginHabilitado } = require('./app');
 const { secretoValido } = require('./security');
+const { crearModuloLaboratorio } = require('../../laboratorio/backend');
 
 async function start() {
   if (!secretoValido()) throw Error('Configure JWT_SECRET de al menos 32 caracteres');
@@ -25,19 +26,23 @@ async function start() {
     .catch(e => console.error(`[auditoria] reenvío de pendientes: ${e.message}`));
   await reenviar();
   setInterval(reenviar, 60_000).unref();
-  const app = crearApp(crearServicios(repos));
+  // Otras instituciones del servidor común: cada una solo se monta si su conexión está configurada.
+  const laboratorio = process.env.LABORATORIO_DB_URL ? await crearModuloLaboratorio() : null;
+  const instituciones = laboratorio ? { [laboratorio.institucion]: laboratorio } : {};
+  const app = crearApp(crearServicios(repos), { instituciones });
   const port = Number(process.env.PORT) || 3001;
   const server = app.listen(port, () => {
     console.log(`Centro pediátrico API: http://localhost:${port}`);
     console.log(`MongoDB conectado. Transacciones multidocumento: ${transacciones ? 'sí (replica set)' : 'no (servidor standalone; auditoría por outbox embebido)'}`);
     console.log(`Perímetro cefálico: ${perimetro_cefalico_opcional ? 'opcional (validador Fase II)' : 'obligatorio (validador instalado; ver npm run db:validadores)'}`);
+    if (laboratorio) console.log(`Laboratorio Clínico: PostgreSQL ${laboratorio.error ? `NO disponible (${laboratorio.error}); responderá 503` : 'conectado'}`);
     if (devLoginHabilitado()) console.log('Inicio de sesión de desarrollo: activo solo para peticiones desde este equipo (127.0.0.1/::1).');
   });
   server.on('error', e => {
     console.error(e.code === 'EADDRINUSE' ? `El puerto ${port} ya está en uso (¿otra instancia de la API?). Cambie PORT o detenga la otra.` : e.message);
     client.close().finally(() => process.exit(1));
   });
-  const cerrar = () => server.close(() => client.close().finally(() => process.exit(0)));
+  const cerrar = () => server.close(() => Promise.allSettled([client.close(), laboratorio?.cerrar()]).finally(() => process.exit(0)));
   process.once('SIGINT', cerrar);
   process.once('SIGTERM', cerrar);
   return server;
