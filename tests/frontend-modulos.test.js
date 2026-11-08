@@ -7,14 +7,16 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { PERMISOS_POR_ROL } = require('../instituciones/pediatria/backend/permisos');
 const LAB = require('../instituciones/laboratorio/backend/permisos');
+const ODONTO = require('../instituciones/odontologia/backend/permisos');
 
 const ruta = r => pathToFileURL(path.join(__dirname, '..', 'apps', 'web', 'src', r)).href;
-let C, pediatria, laboratorio;
+let C, pediatria, laboratorio, odontologia;
 const manifiesto = async carpeta => (await import(pathToFileURL(path.join(__dirname, '..', 'instituciones', carpeta, 'frontend', 'modulo.js')).href)).default;
 before(async () => {
   C = await import(ruta('plataforma/modulos/contrato.js'));
   pediatria = await manifiesto('pediatria');
   laboratorio = await manifiesto('laboratorio');
+  odontologia = await manifiesto('odontologia');
 });
 const sesion = rol => ({ usuario: 'U', rol, institucion: 'centro_pediatrico', permisos: PERMISOS_POR_ROL[rol] });
 // Módulo mínimo de ejemplo (no representa a ninguna institución real).
@@ -46,6 +48,21 @@ test('el módulo del laboratorio cumple el contrato, está registrado y sus perm
   assert.deepEqual(C.navegacionPara(laboratorio, s).map(n => n.to), ['/', '/pacientes', '/solicitudes', '/resultados', '/catalogos']);
   const rec = { ...s, rol: 'recepcion', permisos: LAB.PERMISOS_POR_ROL.recepcion };
   assert.ok(!C.navegacionPara(laboratorio, rec).some(n => n.to === '/resultados'), 'recepción no ve resultados');
+});
+
+test('el módulo de la clínica odontológica cumple el contrato, está registrado y sus permisos existen en su backend', async () => {
+  assert.doesNotThrow(() => C.validarModulo(odontologia));
+  const conocidos = new Set(ODONTO.PERMISOS);
+  for (const x of [...odontologia.rutas, ...odontologia.navegacion, odontologia.accionRapida]) {
+    if (x.permiso) assert.ok(conocidos.has(x.permiso), `permiso sin respaldo en el backend: ${x.permiso}`);
+  }
+  assert.deepEqual(Object.keys(odontologia.roles).sort(), [...ODONTO.ROLES].sort());
+  const { registro } = await import(ruta('plataforma/modulos/registro.js'));
+  const s = rol => ({ usuario: 'U', rol, institucion: 'clinica_odontologica', permisos: ODONTO.PERMISOS_POR_ROL[rol] });
+  assert.equal(C.resolverSesion(registro, s('odontologo')).modulo.institucion, 'clinica_odontologica');
+  assert.deepEqual(C.navegacionPara(odontologia, s('recepcion')).map(n => n.to), ['/', '/pacientes', '/citas', '/catalogos']);
+  assert.ok(C.rutasPara(odontologia, s('odontologo')).some(r => r.path === 'pacientes/:id/consultas/nueva'));
+  assert.ok(!C.rutasPara(odontologia, s('recepcion')).some(r => r.path === 'pacientes/:id/consultas/nueva'), 'recepción no registra consultas');
 });
 
 test('el contrato rechaza manifiestos incompletos o inconsistentes', () => {

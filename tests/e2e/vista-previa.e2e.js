@@ -1,6 +1,6 @@
 'use strict';
 // Prueba en navegador real de la VISTA PREVIA de desarrollo de los módulos pendientes
-// (Hospital General y Clínica Odontológica). El Laboratorio Clínico ya está conectado.
+// (hoy solo el Hospital General). La Clínica Odontológica y el Laboratorio Clínico ya están conectados.
 //
 //   npm run test:e2e:vista-previa
 //
@@ -35,14 +35,6 @@ const MODULOS = {
       ['pacientes/vista-previa/archivar', 'Archivar historial clínico'], ['citas', 'Citas'],
       ['hospitalizacion', 'Hospitalización'], ['catalogos', 'Catálogos'], ['bitacora', 'Bitácora de acceso'], ['archivados', 'Historiales archivados']],
     pestanas: ['Datos generales', 'Consultas', 'Diagnósticos', 'Tratamientos', 'Medicamentos y prescripciones', 'Exámenes', 'Hospitalizaciones', 'Antecedentes']
-  },
-  clinica_odontologica: {
-    nombre: 'Clínica Odontológica',
-    pantallas: [['', 'Panel principal'], ['pacientes', 'Pacientes'], ['pacientes/nuevo', 'Registrar paciente'],
-      ['pacientes/vista-previa', 'Expediente clínico'], ['pacientes/vista-previa/consultas/nueva', 'Nueva consulta odontológica'],
-      ['pacientes/vista-previa/archivar', 'Archivar historial clínico'], ['citas', 'Citas odontológicas'],
-      ['catalogos', 'Catálogos'], ['bitacora', 'Bitácora de acceso'], ['archivados', 'Historiales archivados']],
-    pestanas: ['Datos generales', 'Consultas', 'Diagnósticos', 'Tratamientos', 'Prescripciones', 'Piezas dentales']
   }
 };
 
@@ -102,7 +94,7 @@ async function sinEscritura(pantalla) {
 
 async function main() {
   if (!fs.existsSync(VITE)) throw new Error('Falta Vite: ejecute npm run web:ci');
-  for (const carpeta of ['hospital', 'odontologia']) {
+  for (const carpeta of ['hospital']) {
     const m = (await import(pathToFileURL(path.join(__dirname, '..', '..', 'instituciones', carpeta, 'frontend', 'modulo.js')).href)).default;
     manifiestos[m.institucion] = m;
   }
@@ -157,7 +149,7 @@ async function main() {
       await portal();
       const estados = await page.locator('.portal-card').evaluateAll(ts => ts.map(t => [t.querySelector('h2').textContent, t.querySelector('.badge').textContent]));
       assert.deepEqual(estados, [['Centro Médico Pediátrico', 'Disponible'], ...Object.values(MODULOS).map(m => [m.nombre, 'Pendiente de integración']),
-        ['Laboratorio Clínico', 'Sin autorización']]);
+        ['Clínica Odontológica', 'Sin autorización'], ['Laboratorio Clínico', 'Sin autorización']]);
       await page.getByRole('link', { name: 'Ingresar a Centro Médico Pediátrico' }).waitFor();
       await auditar('Portal (desarrollo, claro)');
       await captura('vp-portal-claro');
@@ -188,7 +180,7 @@ async function main() {
       registrar = true;
     });
 
-    await paso('Estado de integración: Pediatría y Laboratorio implementados, dos instituciones pendientes', async () => {
+    await paso('Estado de integración: Pediatría, Odontología y Laboratorio implementados, Hospital pendiente', async () => {
       await page.goto(`${base}/vista-previa`);
       await h1('Estado de integración');
       const tarjetas = page.locator('.integration-card');
@@ -196,7 +188,7 @@ async function main() {
       const estados = await tarjetas.evaluateAll(ts => ts.map(t => [t.querySelector('h2').textContent, t.querySelector('.badge').textContent]));
       assert.deepEqual(estados, [
         ['Centro Médico Pediátrico', 'Implementado'], ['Hospital General', 'Pendiente de integrar'],
-        ['Clínica Odontológica', 'Pendiente de integrar'], ['Laboratorio Clínico', 'Implementado']
+        ['Clínica Odontológica', 'Implementado'], ['Laboratorio Clínico', 'Implementado']
       ]);
       await auditar('Estado de integración');
       await captura('vp-estado-integracion-claro');
@@ -205,8 +197,10 @@ async function main() {
     await paso('Un módulo conectado o inexistente no se abre en la vista previa', async () => {
       await page.goto(`${base}/vista-previa/centro_pediatrico`);
       await page.getByText('Este módulo ya está conectado').waitFor();
-      await page.goto(`${base}/vista-previa/laboratorio_clinico`);
-      await page.getByText('Este módulo ya está conectado').waitFor();
+      for (const conectado of ['laboratorio_clinico', 'clinica_odontologica']) {
+        await page.goto(`${base}/vista-previa/${conectado}`);
+        await page.getByText('Este módulo ya está conectado').waitFor();
+      }
       await page.goto(`${base}/vista-previa/institucion_inexistente`);
       await page.getByText('Módulo no encontrado').waitFor();
     });
@@ -271,25 +265,6 @@ async function main() {
       await sinEscritura('Archivo hospitalario del mockup');
     });
 
-    await paso('Diseño común: consulta dental, mapa visual y flujo de solicitudes y resultados', async () => {
-      await page.goto(`${base}/vista-previa/clinica_odontologica/pacientes/vista-previa`);
-      await h1('Expediente clínico');
-      await page.getByRole('link', { name: 'Ver diseño de consulta' }).click();
-      await h1('Nueva consulta odontológica');
-      assert.equal(await page.locator('.section-heading').count(), 5);
-      await sinEscritura('Consulta odontológica');
-      await page.getByRole('link', { name: 'Volver', exact: true }).click();
-      await page.getByRole('tab', { name: 'Piezas dentales', exact: true }).click();
-      const pieza = page.getByRole('button', { name: 'Ver posición visual 1', exact: true });
-      await pieza.click();
-      assert.equal(await pieza.getAttribute('aria-pressed'), 'true');
-      await sinEscritura('Mapa dental: selección solo visual');
-      await page.getByRole('link', { name: 'Ver diseño de archivado' }).click();
-      await h1('Archivar historial clínico');
-      await sinEscritura('Archivado odontológico');
-
-    });
-
     await paso('Tema oscuro desde la vista previa (persistente) y contraste', async () => {
       await page.goto(`${base}/vista-previa/hospital_general`);
       await h1('Panel principal');
@@ -333,7 +308,7 @@ async function main() {
           if (ancho === 390) {
             await captura(`vp-movil-portal-${esq}`);
             // En móvil: «Ver diseño», menú desplegable y regreso al portal.
-            await page.getByRole('link', { name: 'Ver diseño de Clínica Odontológica' }).click();
+            await page.getByRole('link', { name: 'Ver diseño de Hospital General' }).click();
             await h1('Panel principal');
             await page.getByRole('button', { name: 'Abrir menú' }).click();
             await page.locator('.app.menu-open').waitFor();

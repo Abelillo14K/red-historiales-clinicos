@@ -69,7 +69,7 @@ const desbordeHorizontal = () => page.evaluate(() => document.documentElement.sc
 // [nombre, estado] de cada tarjeta del portal.
 const tarjetasPortal = () => page.locator('.portal-card').evaluateAll(ts => ts.map(t => [t.querySelector('h2').textContent, t.querySelector('.badge').textContent]));
 const PORTAL_PRODUCCION = [['Centro Médico Pediátrico', 'Disponible'], ['Hospital General', 'Pendiente de integración'],
-  ['Clínica Odontológica', 'Pendiente de integración'], ['Laboratorio Clínico', 'Sin autorización']];
+  ['Clínica Odontológica', 'Sin autorización'], ['Laboratorio Clínico', 'Sin autorización']];
 async function salir() {
   await page.getByRole('button', { name: /^Menú de usuario/ }).click();
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
@@ -181,7 +181,7 @@ async function main() {
         const bienvenida = await page.locator('.portal-welcome').textContent();
         assert.match(bienvenida, /E2E-SEC/); assert.match(bienvenida, /Secretaría/);
         // Producción: las pendientes no ofrecen ningún enlace (ni «Ver diseño»).
-        for (const nombre of ['Hospital General', 'Clínica Odontológica']) {
+        for (const nombre of ['Hospital General']) {
           const tarjeta = page.locator('.portal-card').filter({ hasText: nombre });
           assert.equal(await tarjeta.locator('a, button').count(), 0, `${nombre}: sin acciones en producción`);
           await tarjeta.getByText('Se habilitará cuando su servidor esté conectado.').waitFor();
