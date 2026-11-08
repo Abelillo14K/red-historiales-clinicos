@@ -5,11 +5,11 @@ Proyecto final de Bases de Datos II (Universidad Rafael Landívar): una platafor
 | Institución | Carpeta | Responsable | Estado |
 |---|---|---|---|
 | Centro Médico Pediátrico | [`instituciones/pediatria/`](instituciones/pediatria/README.md) | Abel | **Implementado** con MongoDB: backend, interfaz, pruebas y documentación |
-| Hospital General | [`instituciones/hospital/`](instituciones/hospital/README.md) | Ely | Interfaz en vista previa; backend pendiente |
-| Clínica Odontológica | [`instituciones/odontologia/`](instituciones/odontologia/README.md) | Eddy | Interfaz en vista previa; backend pendiente |
-| Laboratorio Clínico | [`instituciones/laboratorio/`](instituciones/laboratorio/README.md) | Eddy | Interfaz en vista previa; backend pendiente |
+| Hospital General | [`instituciones/hospital/`](instituciones/hospital/README.md) | Ely | Interfaz en vista previa; backend pendiente (MySQL) |
+| Clínica Odontológica | [`instituciones/odontologia/`](instituciones/odontologia/README.md) | Eddy | Interfaz en vista previa; backend pendiente (Firestore) |
+| Laboratorio Clínico | [`instituciones/laboratorio/`](instituciones/laboratorio/README.md) | Eddy | **Implementado** con PostgreSQL: backend, interfaz, pruebas y documentación |
 
-Solo Pediatría tiene hoy backend y datos (todos **ficticios**). Los motores de las otras tres instituciones están por confirmar. El sistema no genera indicaciones clínicas.
+Pediatría y Laboratorio tienen backend y datos (todos **ficticios**). El sistema no genera indicaciones clínicas.
 
 ## Estructura
 
@@ -20,21 +20,23 @@ tests/             pruebas de la plataforma común
 docs/              GUIA_EQUIPO.md (estructura, contratos y cómo conectar una institución) y DISENO.md (sistema visual)
 ```
 
-Flujo: inicio de sesión → portal de instituciones → módulo de la institución. **La institución y los permisos de cada sesión los decide el backend** (`GET /api/sesion`). Mientras sea el único backend, el servidor de Pediatría también sirve la aplicación web y el enrutador por institución.
+Flujo: inicio de sesión → portal de instituciones → módulo de la institución. **La institución y los permisos de cada sesión los decide el backend** (`GET /api/sesion`). El servidor de Pediatría aloja el servidor común: sirve la aplicación web y el enrutador por institución, y monta el Laboratorio cuando `LABORATORIO_DB_URL` está configurada.
 
 | Documento | Contenido |
 |---|---|
 | [`docs/GUIA_EQUIPO.md`](docs/GUIA_EQUIPO.md) | Responsables, estructura, contratos de sesión, HTTP, errores y permisos; cómo conectar el backend y el frontend de una institución |
 | [`docs/DISENO.md`](docs/DISENO.md) | Sistema visual: temas, tokens, componentes y accesibilidad |
 | [`instituciones/pediatria/README.md`](instituciones/pediatria/README.md) | API, roles, seguridad, pruebas y documentación académica de Pediatría |
+| [`instituciones/laboratorio/README.md`](instituciones/laboratorio/README.md) | Puesta en marcha con PostgreSQL, roles, API y pruebas del Laboratorio |
 
-Tecnologías: React 18, React Router 7 y Vite 8 en la web; Node.js (≥ 20.19), Express 4, Zod, JWT y el driver oficial de MongoDB 6 en el backend de Pediatría (MongoDB 9.0); `node:test` y `playwright-core` para las pruebas.
+Tecnologías: React 18, React Router 7 y Vite 8 en la web; Node.js (≥ 20.19), Express 4, Zod y JWT en los backends; el driver oficial de MongoDB 6 en Pediatría (MongoDB 9.0) y `pg` 8 en Laboratorio (PostgreSQL ≥ 16); `node:test` y `playwright-core` para las pruebas.
 
 ## Instalación (Windows, PowerShell)
 
 **Requisitos:**
 - Node.js ≥ 20.19 con npm.
 - MongoDB Community Server 9.0.
+- PostgreSQL 16 o superior (solo para el Laboratorio; ver su [README](instituciones/laboratorio/README.md)).
 - Para las pruebas E2E: Microsoft Edge o Google Chrome.
 - Para respaldos: [MongoDB Database Tools](https://www.mongodb.com/try/download/database-tools).
 
@@ -53,6 +55,7 @@ notepad .env
 **`.env`:** cada integrante crea el suyo; nunca se sube a Git.
 - `JWT_SECRET`: obligatorio, de al menos 32 caracteres.
 - `MONGO_URI`: `mongodb://127.0.0.1:27017` sin autenticación, o `mongodb://<usuario>:<contraseña>@127.0.0.1:27017/?authSource=admin` (basta el rol `readWrite`).
+- `LABORATORIO_DB_URL`: opcional; si falta, el Laboratorio no se monta. Pasos en el [README del Laboratorio](instituciones/laboratorio/README.md).
 - El resto puede quedar como en el ejemplo.
 
 **Base de Pediatría:** elija una opción.
@@ -77,17 +80,19 @@ En la pantalla de acceso, el **modo de desarrollo** permite entrar como Médico,
 | `connect ECONNREFUSED 127.0.0.1:27017` | MongoDB no está en ejecución (`Get-Service MongoDB`) o `MONGO_URI` es incorrecta |
 | `Cannot GET /` en el puerto 3001 | Falta `npm run build` |
 | Pruebas de MongoDB omitidas («sin binario mongod») | `$env:MONGOD_BIN="C:\Program Files\MongoDB\Server\9.0\bin\mongod.exe"` |
+| Pruebas de PostgreSQL omitidas («sin binarios de PostgreSQL») | `PG_BIN` en `.env` con la carpeta `bin` de PostgreSQL |
+| `Laboratorio Clínico: PostgreSQL NO disponible` al arrancar | PostgreSQL detenido o `LABORATORIO_DB_URL` incorrecta; el resto del servidor funciona y el Laboratorio responde 503 |
 
 ## Pruebas
 
 ```powershell
-npm test                      # 148 pruebas: plataforma (30) + Pediatría (118)
+npm test                      # 197 pruebas: plataforma (32) + Pediatría (118) + Laboratorio (47)
 npm run test:e2e              # Pediatría en Edge/Chrome con MongoDB desechable (27 pasos)
 npm run test:e2e:vista-previa # vista previa de las instituciones pendientes (12 pasos)
 npm run test:todo             # todo lo anterior
 ```
 
-**Ninguna prueba toca `centro_pediatrico_db`.** Usan un doble en memoria o un `mongod` desechable que se elimina al terminar.
+**Ninguna prueba toca `centro_pediatrico_db` ni `historial_lab`.** Usan dobles en memoria, un `mongod` desechable o un PostgreSQL desechable que se eliminan al terminar.
 
 ## Comandos
 
@@ -96,7 +101,8 @@ npm run test:todo             # todo lo anterior
 | `npm start` · `npm run dev` | Servidor (API + aplicación compilada) en el puerto 3001 |
 | `npm run build` · `npm run web:dev` | Compila la aplicación web · servidor de desarrollo en el puerto 5173 |
 | `npm run db:indices` · `db:validadores` · `db:diagnostico` · `db:respaldo` · `db:restaurar-aislado` | Operación de MongoDB de Pediatría |
-| `npm run token:dev -- <rol> <usuario>` | JWT de desarrollo |
+| `npm run token:dev -- <rol> <usuario>` | JWT de desarrollo (Pediatría) |
+| `npm run lab:esquema` · `npm run lab:token -- <rol> <usuario>` · `npm run test:laboratorio` | Laboratorio: aplicar el esquema, JWT de desarrollo y pruebas |
 | `npm run web:install` | Agrega o actualiza dependencias de la aplicación web |
 
 ## Trabajo en equipo y seguridad
