@@ -2,6 +2,7 @@
 // Casos de uso de solicitudes de exámenes (la «consulta» del laboratorio).
 const E = require('../domain/errors');
 const R = require('../domain/reglas');
+const { tienePermiso } = require('../permisos');
 const { paginar } = require('./comun');
 
 const CAMPOS_SOLICITUD = ['id_medico', 'institucion_remitente', 'fecha_solicitud', 'prioridad', 'motivo', 'indicaciones', 'observaciones'];
@@ -46,7 +47,9 @@ function crearSolicitudesService({ solicitudes, pacientes }, comun) {
       const s = await solicitudes.obtener(id);
       if (!s) throw E.notFound('Solicitud inexistente');
       await exigirLectura(actor, await pacientes.obtener(s.id_paciente), 'LEER_SOLICITUD');
-      return s;
+      // Quien no ve resultados (recepción) recibe el estado de cada examen, sin valores.
+      if (tienePermiso(actor.rol, 'laboratorio.resultados.ver')) return s;
+      return { ...s, examenes: s.examenes.map(e => ({ ...e, resultado: e.resultado && { estado: e.resultado.estado } })) };
     }
   };
 }
