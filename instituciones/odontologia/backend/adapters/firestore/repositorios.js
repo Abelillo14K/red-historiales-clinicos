@@ -5,7 +5,7 @@
 //   citas/{auto}                        agenda, con nombre de paciente y odontólogo copiados
 //   odontologos/{colegiado} · procedimientos/{codigo}   catálogos (el id garantiza la unicidad)
 //   documentos_paciente/{documento}     guarda de unicidad del documento de identidad
-//   contadores/pacientes · bitacora/{auto}
+//   contadores/pacientes · bitacora/{auto} · cuentas_acceso/{usuario}
 // Dentro de una transacción (tx) las lecturas usan tx.get y las escrituras se acumulan en `pendientes`
 // para aplicarlas al final, porque Firestore exige leer todo antes de escribir.
 // Las consultas usan solo índices de un campo (los automáticos); el resto se filtra en memoria.
@@ -14,6 +14,7 @@ const E = require('../../domain/errors');
 const R = require('../../domain/reglas');
 
 const ID_VALIDO = /^[A-Za-z0-9_-]{1,40}$/;
+const USUARIO_VALIDO = /^[a-z][a-z0-9._-]{2,39}$/;
 const LIMITE_LECTURA = 1000;
 
 // Timestamp → Date en todo el documento.
@@ -141,6 +142,14 @@ function crearRepositorios(db, tx = null, pendientes = null) {
     procedimientos: procedimientos.listar, obtenerProcedimiento: procedimientos.obtener, crearProcedimiento: procedimientos.crear
   };
 
+  // cuentas_acceso/{usuario}: el id del documento garantiza que el usuario no se repita.
+  const cuenta = u => db.collection('cuentas_acceso').doc(u);
+  const cuentas = {
+    obtener: u => (USUARIO_VALIDO.test(String(u)) ? doc(cuenta(String(u))) : Promise.resolve(null)),
+    async crear(c) { escribir(t => t.create(cuenta(c.usuario), c)); },
+    async actualizarContrasena(u, hash) { escribir(t => t.update(cuenta(u), { hash_contrasena: hash, actualizado: new Date() })); }
+  };
+
   const auditoria = {
     async registrar(e) {
       const ref = db.collection('bitacora').doc();
@@ -160,7 +169,7 @@ function crearRepositorios(db, tx = null, pendientes = null) {
     }
   };
 
-  return { pacientes, consultas, citas, catalogos, auditoria };
+  return { pacientes, consultas, citas, catalogos, cuentas, auditoria };
 }
 
 module.exports = { crearRepositorios };
