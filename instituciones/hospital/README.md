@@ -13,6 +13,8 @@
 ```
 instituciones/hospital/
   README.md                    este archivo
+  docs/MODELO_Y_DECISIONES.md  modelo relacional, consistencia y seguridad
+  tests/                       integración sobre un MySQL desechable (npm run test:hospital)
   backend/                     Express + MySQL (ESM, con su propio package.json)
     sql/                         esquema de 29 tablas y datos base ficticios
     scripts/crear-usuario.js     npm run hospital:usuario
@@ -33,6 +35,6 @@ Rutas: `/`, `/pacientes`, `/pacientes/nuevo`, `/pacientes/:id[/:seccion]`, `/pac
 
 Se entra por el formulario común con una cuenta que empiece con `hosp.`. La cuenta se valida en la tabla `usuario` de MySQL. Roles: `administrador`, `medico`, `enfermeria` y `recepcion`; sus permisos están en `backend/src/seguridad.js`.
 
-## Pendiente
+## Pruebas
 
-Todavía no tiene pruebas automatizadas propias.
+`npm run test:hospital` levanta un MySQL desechable y nunca toca `historial_clinico`. Requiere `npm run hospital:install` y MySQL Server instalado; si falta alguno, las pruebas se omiten.
