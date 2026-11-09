@@ -2,52 +2,97 @@
 
 | | |
 |---|---|
-| Estado | **Preparado visualmente · pendiente de integración** (no registrado en `apps/web/src/plataforma/modulos/registro.js`) |
-| Identificador | `clinica_odontologica` (debe coincidir con el claim `institucion` del JWT y con la clave del backend) |
+| Estado | **Implementado**: backend Cloud Firestore, interfaz conectada, pruebas y documentación |
+| Identificador | `clinica_odontologica` (claim `institucion` del JWT, clave del enrutador y del módulo) |
 | Responsable | Eddy (`docs/GUIA_EQUIPO.md` §1) |
-| Motor | Por confirmar por el equipo (`docs/GUIA_EQUIPO.md` §1) |
-| Vista previa | `npm run web:dev` → <http://localhost:5173/vista-previa/clinica_odontologica> |
+| Motor | Firebase · Cloud Firestore (plan Spark, sin costo); emulador oficial para las pruebas |
+| Modelo y decisiones | [`docs/MODELO_Y_DECISIONES.md`](docs/MODELO_Y_DECISIONES.md) |
 
-## Contenido
+Todos los datos son **ficticios**. El sistema no genera indicaciones clínicas: el estado de cada pieza y los tratamientos los registra el odontólogo.
 
-No hay carpeta `backend/` todavía: se crea cuando el responsable empiece a escribirlo (`docs/GUIA_EQUIPO.md` §6), junto con `tests/` y `docs/` propios.
+## Estructura
 
 ```
 instituciones/odontologia/
-  README.md                    este archivo
-  frontend/                    módulo React (lo carga apps/web; sin package.json propio)
-    modulo.js                    manifiesto: rutas, navegación, permisos, acción rápida
-    api.js                       punto de integración con SU backend (hoy sin operaciones)
-    paginas/
-      Panel.jsx                  indicadores (—), próximas citas, accesos rápidos
-      Pacientes.jsx              búsqueda y listado (también lo usa Archivados)
-      PacienteNuevo.jsx          registro de cuatro secciones con resumen lateral (deshabilitado)
-      Expediente.jsx             pestañas: datos generales, consultas, diagnósticos, tratamientos, prescripciones, piezas dentales
-      Citas.jsx                  citas odontológicas (extensión propuesta)
-      NuevaConsulta.jsx          atención, evaluación, diagnósticos, tratamiento por pieza y receta
-      Archivar.jsx               motivos de baja, detalles y confirmación (diseño)
-      Administracion.jsx         catálogos y bitácora
-      Archivados.jsx             historiales archivados
-    componentes/
-      EncabezadoExpediente.jsx   encabezado del expediente y datos clave
-      PiezasDentales.jsx         mapa visual seleccionable y detalle por pieza (sin datos clínicos)
+  backend/
+    domain/                 errores y reglas (piezas FDI, citas, búsqueda) sin motor
+    ports/                  contratos de persistencia
+    application/            casos de uso: pacientes y odontograma, consultas, citas, catálogos, panel
+    adapters/firestore/     repositorios, transacciones (runTransaction) y traducción de errores
+    api/                    rutas Express y middleware (formato de error común)
+    app.js                  router montable en el enrutador por institución
+    index.js                composición: conexión → adaptador → casos de uso → router
+    db.js security.js permisos.js schema.js
+  frontend/                 módulo React (manifiesto, api.js, páginas, odontograma)
+  scripts/dev-token.js      npm run odonto:token
+  tests/                    dominio, servicios, API, permisos e integración con el emulador de Firestore
+  docs/                     modelo documental, consistencia, seguridad y justificación del motor
 ```
 
-Rutas: `/`, `/pacientes`, `/pacientes/nuevo`, `/pacientes/:id[/:seccion]` (incluye `piezas`), `/pacientes/:id/consultas/nueva`, `/pacientes/:id/archivar`, `/citas`, `/catalogos`, `/bitacora`, `/archivados`.
-Permisos: comunes y `odontologia.citas.ver` (propuesta).
+El servidor común (`instituciones/pediatria/backend/server.js`) monta este módulo si existe `ODONTOLOGIA_FIREBASE_CREDENCIALES` (o `FIRESTORE_EMULATOR_HOST`). Si la llave falta o Firestore no responde, la clínica responde `503 MOTOR_NO_DISPONIBLE` y las demás instituciones siguen funcionando.
 
-## Piezas dentales y odontograma
+## Puesta en marcha con Firebase real
 
-`PiezasDentales.jsx` presenta una **plantilla visual**, con selección local de una posición del diseño. No asigna numeración clínica ni representa el estado dental de un paciente. El formulario de detalle por pieza permanece deshabilitado. Cuando el responsable defina el contrato de datos:
+1. En https://console.firebase.google.com: crear el proyecto y **Firestore Database** (edición Standard, `(default)`, ubicación `nam5`, modo de producción). No hace falta Storage ni el plan de pago.
+2. Configuración del proyecto → **Cuentas de servicio** → «Generar nueva clave privada». Guarde el `.json` **fuera del repositorio**: da acceso total a la base.
+3. En `.env`:
+   ```
+   ODONTOLOGIA_FIREBASE_CREDENCIALES=D:\ruta\fuera\del\repo\llave.json
+   ```
+   El ID del proyecto se toma de la llave (o de `ODONTOLOGIA_FIREBASE_PROJECT_ID`).
+4. `npm run dev` debe mostrar `Clínica Odontológica: Firestore (<proyecto>) conectado`.
 
-1. Vincular la numeración, superficies, estados y tratamientos reales en `frontend/componentes/PiezasDentales.jsx` (o un componente propio), conservando los tokens y componentes compartidos.
-2. Declarar la operación en `api.js` y cargarla en la pestaña «Piezas dentales» de `frontend/paginas/Expediente.jsx`.
-3. No hace falta modificar la plataforma compartida.
+No hay que crear colecciones ni índices: se crean al guardar el primer documento, y todas las consultas usan los índices automáticos de un campo (verificado contra Firestore real).
 
-## Qué falta (lo decide el responsable de la Clínica)
+**Para que el docente vea la base:** consola de Firebase → Configuración del proyecto → **Usuarios y permisos** → agregar su correo con rol **Lector**. Verá las colecciones en Firestore Database → Datos.
 
-Backend propio con `GET /api/sesion`, `roles` y permisos reales, operaciones de `api.js`, campos propios, modelo de citas y piezas, y el registro en `registro.js` (`docs/GUIA_EQUIPO.md` §7). Sin datos ficticios ni peticiones mientras tanto.
+Las reglas de seguridad de Firestore quedan en «modo de producción» (todo cerrado): solo el servidor accede, con la cuenta de servicio. El navegador nunca se conecta a Firestore.
 
-## Recorrido del diseño
+## Acceso de desarrollo
 
-`/vista-previa/clinica_odontologica/pacientes` → estructura del expediente → pestañas, «Ver diseño de consulta» o «Ver diseño de archivado». Registro, agenda, catálogos y bitácora usan la misma composición de tarjetas, indicadores, formularios y paneles de contexto que las demás instituciones. Ver `docs/DISENO.md`.
+```powershell
+npm run odonto:token -- odontologo EDDY-OD     # roles: recepcion, odontologo, administrador
+```
+
+En la pantalla de acceso: «Usar un token institucional» → pegar → «Ingresar a Clínica Odontológica». El token dura 8 horas y solo vale con el `JWT_SECRET` de ese `.env`.
+
+## Roles y permisos
+
+Única fuente: [`backend/permisos.js`](backend/permisos.js) (la misma tabla autoriza las rutas y se entrega en `/api/sesion`).
+
+| Permiso | Recepción | Odontólogo | Administrador |
+|---|:-:|:-:|:-:|
+| `panel.ver`, `pacientes.listar`, `pacientes.ver_administrativo`, `catalogos.ver`, `odontologia.citas.ver` | ✔ | ✔ | ✔ |
+| `pacientes.registrar` | ✔ | | ✔ |
+| `odontologia.citas.gestionar` | ✔ | ✔ | |
+| `historial.leer` | | ✔ | ✔ |
+| `clinico.escribir` (consultas, diagnósticos, tratamientos, recetas, odontograma) | | ✔ | |
+| `historial.leer_archivados`, `historial.archivar`, `catalogos.editar`, `auditoria.leer` | | | ✔ |
+
+Recepción ve datos generales y de contacto, pero no antecedentes, odontograma ni consultas.
+
+## Reglas comunes en la clínica
+
+| Regla común | En la clínica | Ruta |
+|---|---|---|
+| Registrar paciente | Expediente `OD000001` con contacto, antecedentes y atención inicial | `POST /api/pacientes` |
+| Registrar consulta | Consulta con evaluación; puede incluir diagnósticos, tratamientos y receta, y cerrar su cita | `POST /api/pacientes/:id/consultas` |
+| Agregar diagnóstico | Código, descripción y pieza (FDI) | `POST …/consultas/:c/diagnosticos` |
+| Tratamiento por pieza | Procedimiento del catálogo o libre; actualiza el odontograma | `POST …/consultas/:c/tratamientos` |
+| Recetar | Receta con uno o varios medicamentos | `POST …/consultas/:c/prescripciones` |
+| Dar de baja | Archivo con motivo; el historial queda en solo lectura | `PATCH /api/pacientes/:id/archivar` |
+
+Extensiones: odontograma `PUT /api/pacientes/:id/piezas/:pieza` (estado: Sana, Caries, Obturada, Endodoncia, Corona, Ausente, Extracción indicada, Implante), agenda `GET|POST /api/citas` y `PATCH /api/citas/:id/estado` (sin citas cruzadas del mismo odontólogo), historial de medicamentos `GET /api/pacientes/:id/prescripciones`, catálogos `GET|POST /api/odontologos` y `/api/procedimientos`, además de `/api/sesion`, `/panel`, `/auditoria`.
+
+## Pruebas
+
+```powershell
+npm run test:odontologia      # 39 pruebas; incluidas en npm test
+npm run odonto:emulador       # una sola vez: descarga el emulador de Firestore (~100 MB)
+```
+
+- **Dominio y servicios** sobre un doble en memoria (`tests/doubles/memoria.js`) con la misma semántica de transacción que Firestore.
+- **La misma batería de flujo** corre sobre el **emulador oficial de Firestore** (`tests/soporte/firestoreTemporal.js`): proceso Java propio, puerto libre, que se detiene al terminar. **Nunca toca el proyecto real.** Además prueba el contador transaccional con altas simultáneas, que una bitácora fallida no confirme nada y el odontograma por ruta de campo.
+- **API y permisos**: contrato de `/api/sesion`, tokens, validación de entrada, formato de errores, 503 con el motor caído y que cada permiso coincida con la autorización real.
+
+Requisitos de las pruebas de integración: **Java 21 o superior** y el emulador descargado. Sin ellos se omiten (las demás pasan igual). Ruta propia del `.jar`: `FIRESTORE_EMULATOR_JAR`.

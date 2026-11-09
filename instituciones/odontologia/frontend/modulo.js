@@ -1,7 +1,5 @@
 // Manifiesto del módulo Clínica Odontológica (contrato de módulos v1, plataforma/modulos/contrato.js).
-// ESTADO: preparado visualmente, PENDIENTE de integración. No está en registro.js, así que
-// la aplicación real no lo carga. Se revisa en la vista previa de desarrollo:
-//   npm run web:dev  →  http://localhost:5173/vista-previa/clinica_odontologica
+// Conectado a su backend Cloud Firestore (instituciones/odontologia/backend) y registrado en registro.js.
 // Guía: docs/GUIA_EQUIPO.md · instituciones/odontologia/README.md.
 import { crearApiOdontologia } from './api.js';
 import presentacion from './presentacion.js';
@@ -11,28 +9,26 @@ const expediente = () => import('./paginas/Expediente.jsx');
 const administracion = () => import('./paginas/Administracion.jsx');
 
 const SECCIONES = {
-  resumen: 'Datos generales',
-  consultas: 'Consultas', diagnosticos: 'Diagnósticos', tratamientos: 'Tratamientos', prescripciones: 'Prescripciones',
-  piezas: 'Piezas dentales'
+  resumen: 'Datos generales', consultas: 'Consultas', diagnosticos: 'Diagnósticos', tratamientos: 'Tratamientos',
+  prescripciones: 'Prescripciones', piezas: 'Piezas dentales', citas: 'Citas'
 };
 
 export default {
   contrato: 1,
-  institucion: 'clinica_odontologica',       // igual al claim `institucion` del JWT que emita su backend
+  institucion: 'clinica_odontologica',   // igual al claim `institucion` del JWT
   ...presentacion,                       // nombre, sigla, descripción e icono (presentacion.js)
-  // Los roles y su tabla de permisos los define el backend de la Clínica; no se inventan aquí.
-  roles: {},
+  // Mismos roles que backend/permisos.js; los permisos de cada rol llegan en /api/sesion.
+  roles: { recepcion: 'Recepción', odontologo: 'Odontólogo', administrador: 'Administrador' },
   crearApi: crearApiOdontologia,
 
-  // Permisos: los comunes de la plataforma (docs/GUIA_EQUIPO.md §9) y, para
-  // operaciones exclusivas, el prefijo `odontologia.` (propuesta a confirmar con su backend).
+  // Permisos: los comunes de la plataforma (docs/GUIA_EQUIPO.md §9) y los exclusivos con prefijo `odontologia.`.
   rutas: [
     { path: '', permiso: 'panel.ver', cargar: () => import('./paginas/Panel.jsx') },
     { path: 'pacientes', titulo: 'Pacientes', permiso: 'pacientes.listar', cargar: () => import('./paginas/Pacientes.jsx') },
     { path: 'pacientes/nuevo', titulo: 'Registrar paciente', permiso: 'pacientes.registrar', cargar: () => import('./paginas/PacienteNuevo.jsx') },
     { path: 'pacientes/:id/consultas/nueva', titulo: 'Nueva consulta', permiso: 'clinico.escribir', cargar: () => import('./paginas/NuevaConsulta.jsx') },
     { path: 'pacientes/:id/archivar', titulo: 'Archivar', permiso: 'historial.archivar', cargar: () => import('./paginas/Archivar.jsx') },
-    { path: 'pacientes/:id', titulo: (p, ctx) => (ctx.vistaPrevia ? 'Estructura del expediente' : p.id), permiso: 'pacientes.ver_administrativo', cargar: expediente },
+    { path: 'pacientes/:id', titulo: p => p.id, permiso: 'pacientes.ver_administrativo', cargar: expediente },
     { path: 'pacientes/:id/:seccion', titulo: p => SECCIONES[p.seccion] || null, permiso: 'pacientes.ver_administrativo', cargar: expediente },
     { path: 'citas', titulo: 'Citas odontológicas', permiso: 'odontologia.citas.ver', cargar: () => import('./paginas/Citas.jsx') },
     { path: 'catalogos', titulo: 'Catálogos', permiso: 'catalogos.ver', cargar: administracion },
