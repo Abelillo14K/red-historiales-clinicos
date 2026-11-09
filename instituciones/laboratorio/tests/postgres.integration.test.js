@@ -8,6 +8,7 @@ const { iniciarPostgresTemporal, binariosPostgres, vaciar } = require('./soporte
 const { crearRepositoriosPostgres } = require('../backend/adapters/postgres');
 const { crearServicios } = require('../backend/application');
 const { pruebasFlujo, REC, TEC, paciente } = require('./soporte/flujoComun');
+const { pruebasAcceso } = require('./soporte/flujoAcceso');
 const { sembrarCatalogo, iniciar, ADMIN } = require('./helpers');
 
 const omitir = binariosPostgres() ? false : 'sin binarios de PostgreSQL (defina PG_BIN) para la base de pruebas desechable';
@@ -25,6 +26,7 @@ describe('PostgreSQL', { skip: omitir }, () => {
   const nuevos = async () => { await vaciar(pool); return crearRepositoriosPostgres(pool); };
 
   pruebasFlujo('PostgreSQL', nuevos);
+  pruebasAcceso('PostgreSQL', nuevos);
 
   test('la fecha de nacimiento se guarda sin corrimiento por zona horaria', async () => {
     const repos = await nuevos();

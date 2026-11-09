@@ -8,7 +8,7 @@ const copia = x => structuredClone(x);
 function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
   let db = {
     secuencia: 0, pacientes: [], medicos: [], personal: [], tiposMuestra: [], parametros: [], tiposExamen: [],
-    tipoExamenParametro: [], solicitudes: [], examenes: [], resultados: [], detalles: [], bitacora: []
+    tipoExamenParametro: [], solicitudes: [], examenes: [], resultados: [], detalles: [], cuentas: [], bitacora: []
   };
   const nuevoId = () => String(++db.secuencia);
   const unico = (lista, campo, valor, mensaje) => {
@@ -221,6 +221,18 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
     }
   };
 
+  const cuentas = {
+    async obtener(u) { return copia(db.cuentas.find(c => c.usuario === u) ?? null); },
+    async crear(c) {
+      unico(db.cuentas, 'usuario', c.usuario, 'Ya existe una cuenta con ese usuario');
+      db.cuentas.push({ usuario: c.usuario, rol: c.rol, hash_contrasena: c.hash_contrasena, activo: true });
+    },
+    async actualizarContrasena(u, hash) {
+      const c = db.cuentas.find(x => x.usuario === u);
+      if (c) c.hash_contrasena = hash;
+    }
+  };
+
   const auditoria = {
     async registrar(evento) {
       if (fallarAuditoria) throw new Error('bitácora no disponible');
@@ -232,7 +244,7 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
     }
   };
 
-  const repos = { pacientes, solicitudes, resultados, catalogos, auditoria };
+  const repos = { pacientes, solicitudes, resultados, catalogos, cuentas, auditoria };
   const unidad = {
     async ejecutar(fn) {
       const respaldo = copia(db);
