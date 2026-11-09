@@ -45,22 +45,23 @@ test('cada institución tiene una presentación única que su manifiesto reutili
   }
 });
 
-test('sesión de Pediatría: Pediatría disponible, Odontología y Laboratorio conectados sin autorización, Hospital pendiente, en el orden del proyecto', () => {
+test('sesión de Pediatría: Pediatría disponible y las demás instituciones conectadas sin autorización, en el orden del proyecto', () => {
   for (const rol of Object.keys(PERMISOS_POR_ROL)) {
     assert.deepEqual(estados(sesion(rol)), [
-      ['Centro Médico Pediátrico', 'disponible'], ['Hospital General', 'pendiente'],
+      ['Centro Médico Pediátrico', 'disponible'], ['Hospital General', 'sin_autorizacion'],
       ['Clínica Odontológica', 'sin_autorizacion'], ['Laboratorio Clínico', 'sin_autorizacion']
     ], rol);
   }
-  const [pediatria, ...resto] = P.tarjetasPortal(presentaciones, registro, sesion('medico'));
+  const [pediatria, hospital, ...resto] = P.tarjetasPortal(presentaciones, registro, sesion('medico'));
   assert.equal(pediatria.institucion, 'centro_pediatrico');
-  for (const t of resto.filter(t => t.estado === 'pendiente')) assert.equal(t.institucion, null, 'un módulo sin registrar no aporta identificador ni acceso');
+  assert.equal(hospital.institucion, 'hospital_general');
+  for (const t of resto) assert.ok(t.institucion, 'las cuatro instituciones están conectadas');
 });
 
 test('sesión del Laboratorio: solo el Laboratorio está disponible', () => {
   for (const rol of LAB.ROLES) {
     assert.deepEqual(estados({ usuario: 'U', rol, institucion: 'laboratorio_clinico', permisos: LAB.PERMISOS_POR_ROL[rol] }), [
-      ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'pendiente'],
+      ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'sin_autorizacion'],
       ['Clínica Odontológica', 'sin_autorizacion'], ['Laboratorio Clínico', 'disponible']
     ], rol);
   }
@@ -69,17 +70,23 @@ test('sesión del Laboratorio: solo el Laboratorio está disponible', () => {
 test('sesión de la Clínica Odontológica: solo la Clínica está disponible', () => {
   for (const rol of ODONTO.ROLES) {
     assert.deepEqual(estados({ usuario: 'U', rol, institucion: 'clinica_odontologica', permisos: ODONTO.PERMISOS_POR_ROL[rol] }), [
-      ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'pendiente'],
+      ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'sin_autorizacion'],
       ['Clínica Odontológica', 'disponible'], ['Laboratorio Clínico', 'sin_autorizacion']
     ], rol);
   }
 });
 
-test('sin autorización del backend no hay acceso real a ninguna institución', () => {
-  const pendientes = [['Hospital General', 'pendiente'], ['Clínica Odontológica', 'sin_autorizacion'], ['Laboratorio Clínico', 'sin_autorizacion']];
+test('una sesión solo obtiene acceso real a su propia institución', () => {
+  const pendientes = [['Clínica Odontológica', 'sin_autorizacion'], ['Laboratorio Clínico', 'sin_autorizacion']];
+  // Sesión del Hospital: su módulo ya está registrado y queda disponible.
+  assert.deepEqual(estados(sesion('medico', 'hospital_general')), [
+    ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'disponible'], ...pendientes
+  ]);
   // Sesión de otra institución (aunque su módulo exista en el repositorio), sin permisos o inexistente.
-  for (const s of [sesion('medico', 'hospital_general'), sesion('medico', 'otra_institucion'), { usuario: 'U', rol: 'medico', institucion: 'centro_pediatrico' }, null]) {
-    assert.deepEqual(estados(s), [['Centro Médico Pediátrico', 'sin_autorizacion'], ...pendientes], JSON.stringify(s));
+  for (const s of [sesion('medico', 'otra_institucion'), { usuario: 'U', rol: 'medico', institucion: 'centro_pediatrico' }, null]) {
+    assert.deepEqual(estados(s), [
+      ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'sin_autorizacion'], ...pendientes
+    ], JSON.stringify(s));
   }
   assert.equal(P.sesionAutorizaA(sesion('medico'), 'centro_pediatrico'), true);
   assert.equal(P.sesionAutorizaA(sesion('medico'), 'hospital_general'), false);
