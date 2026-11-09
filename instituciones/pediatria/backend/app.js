@@ -27,7 +27,8 @@ function crearRouterPediatria(servicios) {
   return r;
 }
 
-function crearApp(servicios, { frontendDist = path.join(__dirname, '..', '..', '..', 'apps', 'web', 'dist') } = {}) {
+// instituciones: módulos de las demás instituciones ya compuestos con su motor ({ [id]: { nombre, motor, router } }).
+function crearApp(servicios, { frontendDist = path.join(__dirname, '..', '..', '..', 'apps', 'web', 'dist'), instituciones = {} } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.set('query parser', 'simple');
@@ -45,6 +46,7 @@ function crearApp(servicios, { frontendDist = path.join(__dirname, '..', '..', '
 
   // La institución del token decide el módulo y, con él, el motor de base de datos.
   app.use('/api', M.limitador({ ventanaMs: 60_000, maximo: 600 }), crearEnrutadorInstituciones({
+    ...instituciones,
     [INSTITUCION]: { nombre: 'Centro Médico Pediátrico', motor: 'MongoDB', router: crearRouterPediatria(servicios) }
   }));
 

@@ -23,11 +23,11 @@ Guía única para trabajar en el proyecto: estructura, responsables, contratos c
 | Institución | Carpeta | Identificador (claim `institucion`) | Motor | Responsable | Estado |
 |---|---|---|---|---|---|
 | Centro Médico Pediátrico | `instituciones/pediatria` | `centro_pediatrico` | MongoDB | Abel (propietario) | Implementado |
-| Hospital General | `instituciones/hospital` | `hospital_general` | Por confirmar | Ely | Frontend en vista previa; backend pendiente |
-| Clínica Odontológica | `instituciones/odontologia` | `clinica_odontologica` | Por confirmar | Eddy | Frontend en vista previa; backend pendiente |
-| Laboratorio Clínico | `instituciones/laboratorio` | `laboratorio_clinico` | Por confirmar | Eddy | Frontend en vista previa; backend pendiente |
+| Hospital General | `instituciones/hospital` | `hospital_general` | MySQL | Ely | Frontend en vista previa; backend pendiente |
+| Clínica Odontológica | `instituciones/odontologia` | `clinica_odontologica` | Firebase (Cloud Firestore) | Eddy | Implementado |
+| Laboratorio Clínico | `instituciones/laboratorio` | `laboratorio_clinico` | PostgreSQL | Eddy | Implementado |
 
-**Antes de empezar un backend, el equipo debe confirmar los motores.** El enunciado exige cuatro motores distintos (PostgreSQL, MySQL, MongoDB, Firebase). La Fase I asigna PostgreSQL al Laboratorio y MySQL a Odontología, pero también describe al Hospital «implementado en Mysql» con `SERIAL`, y no asigna Firebase. Esta tabla es el único lugar donde se registra la asignación.
+El enunciado exige cuatro motores distintos (PostgreSQL, MySQL, MongoDB, Firebase). La Fase I asignaba MySQL a Odontología y no asignaba Firebase; el equipo la ajustó a la asignación de esta tabla, que es el único lugar donde se registra.
 
 ## 2. Estructura del repositorio
 
@@ -38,7 +38,7 @@ apps/web/                  ÚNICA aplicación web (React + Vite), compartida
   alias.js                 alias @plataforma y @instituciones (un solo lugar)
 instituciones/<x>/
   frontend/                módulo React: presentacion.js, modulo.js, api.js, paginas/, componentes/
-  backend/ tests/ docs/    solo cuando existen (hoy: Pediatría)
+  backend/ tests/ docs/    solo cuando existen (hoy: Pediatría, Laboratorio y Odontología)
   README.md                estado y pendientes de la institución
 tests/                     pruebas de la plataforma (contrato de módulos, portal, cliente, proxy, vista previa)
 docs/                      esta guía y el sistema visual
@@ -54,7 +54,7 @@ package.json (raíz)        dependencias del backend y de las pruebas; todos los
 **Reglas técnicas** (las comprueba `tests/frontend-equipo.test.js`):
 - Un módulo importa archivos de su carpeta con rutas relativas, la plataforma con `@plataforma/...`, y React o React Router. **Nunca** archivos de otra institución; lo común se propone para `apps/web/src/plataforma/`.
 - Las instituciones no tienen `package.json`: el frontend usa las dependencias de `apps/web` y el backend las de la raíz. Para agregar una dependencia: `npm install <paquete>` (backend) o `npm --prefix apps/web install <paquete>` (frontend), avisando, porque modifica un lockfile compartido.
-- El backend de Pediatría **aloja hoy el servidor común**: sirve `apps/web/dist`, monta el enrutador por institución y valida el JWT. Cuando exista un segundo backend, el equipo decide si su router se monta ahí o si esa capa se extrae (por ejemplo, a `apps/api/`).
+- El backend de Pediatría **aloja hoy el servidor común**: sirve `apps/web/dist`, monta el enrutador por institución y valida el JWT. Las demás instituciones se montan ahí con la opción `instituciones` de `crearApp` (§6). Si el servidor crece, el equipo puede extraer esa capa (por ejemplo, a `apps/api/`).
 
 ## 3. Contrato de sesión
 
@@ -94,6 +94,7 @@ El token viaja en `Authorization: Bearer <JWT>`. El frontend lo guarda en `sessi
 
 - **Inicio de sesión común (pendiente del equipo):** debe redirigir a `https://<host>/#access_token=<JWT>`. La interfaz lee el fragmento, lo borra de la URL y llama a `/api/sesion`.
 - **Inicio de sesión actual:** `POST /auth/login` con `{ usuario, contrasena }`, contra la colección `usuarios` de la institución que atiende este backend. Devuelve el JWT de la sesión; el usuario nunca lo ve ni lo escribe.
+- **Laboratorio y Clínica Odontológica (temporal):** todavía no tienen inicio de sesión con contraseña. Se entra generando un JWT con `npm run lab:token -- <rol> <usuario>` o `npm run odonto:token -- <rol> <usuario>` y abriendo `http://localhost:3001/#access_token=<JWT>`.
 - **Varias instituciones por usuario (no implementado):** el backend tendría que informar las instituciones autorizadas y emitir un token por institución. El frontend solo cambiaría `sesionAutorizaA()` en `plataforma/portal/portal.js`.
 
 ## 4. Contrato HTTP y errores
@@ -124,6 +125,7 @@ El token viaja en `Authorization: Bearer <JWT>`. El frontend lo guarda en `sessi
 | Conflicto (duplicado, dosis ya aplicada, archivado) | 409 | `CONFLICTO` |
 | Cuerpo demasiado grande | 413 | `SOLICITUD_DEMASIADO_GRANDE` |
 | Referencia inexistente (médico, vacuna) · rechazo del motor (validador, CHECK) | 422 | `REFERENCIA_INVALIDA` · `VALIDACION_MOTOR` |
+| El motor de la institución no responde (las demás siguen funcionando) | 503 | `MOTOR_NO_DISPONIBLE` |
 | Demasiadas solicitudes | 429 | `DEMASIADAS_SOLICITUDES` |
 | No se pudo registrar el acceso · autenticación sin configurar | 503 | `AUDITORIA_NO_DISPONIBLE` · `AUTENTICACION_NO_DISPONIBLE` |
 | Error interno | 500 | `ERROR_INTERNO` (mensaje genérico) |
@@ -178,9 +180,11 @@ petición /api/* ─▶ crearEnrutadorInstituciones (valida el JWT una vez)
    - autorizar cada ruta con su tabla de permisos;
    - responder los errores con el formato §4.1;
    - si su motor no está disponible, responder 503 sin afectar a las demás instituciones.
-5. **Registro:** una línea en la composición del servidor (hoy `instituciones/pediatria/backend/app.js`). Hasta entonces, un token de esa institución recibe `403 INSTITUCION_NO_REGISTRADA`.
+5. **Registro:** un `backend/index.js` que compone su conexión, adaptador, casos de uso y router, y unas líneas en `instituciones/pediatria/backend/server.js` que lo pasan a `crearApp(servicios, { instituciones })` solo si su variable de conexión existe. Hasta entonces, un token de esa institución recibe `403 INSTITUCION_NO_REGISTRADA`. Ejemplos reales: el Laboratorio y la Clínica Odontológica.
    ```js
-   hospital_general: { nombre: 'Hospital General', motor: '<motor confirmado>', router: crearRouterHospital(serviciosHospital) }
+   const laboratorio = process.env.LABORATORIO_DB_URL ? await crearModuloLaboratorio() : null;
+   const instituciones = laboratorio ? { [laboratorio.institucion]: laboratorio } : {};   // { nombre, motor, router }
+   const app = crearApp(crearServicios(repos), { instituciones });
    ```
 6. **Pruebas:** un comando `test:<x>` en `package.json`, incluido en `npm test`, con un doble de sus puertos (como `instituciones/pediatria/tests/doubles/memoria.js`) y una base **desechable** de su motor.
 7. **Documentación** en `instituciones/<x>/docs/`: modelo, consistencia, seguridad y justificación del motor. Es su parte del documento comparativo.
@@ -279,7 +283,7 @@ Cada institución asigna **sus** roles a estos permisos comunes; la misma tabla 
 | `catalogos.ver` · `catalogos.editar` | Catálogos de la institución |
 | `auditoria.leer` | Bitácora |
 
-Formato `recurso.accion` en minúsculas. Los permisos exclusivos llevan el prefijo de la institución; propuestos hoy en los manifiestos, a confirmar por cada backend: `hospital.citas.ver`, `hospital.hospitalizacion.ver`, `odontologia.citas.ver`, `laboratorio.solicitudes.ver`, `laboratorio.solicitudes.crear`, `laboratorio.resultados.ver` y `laboratorio.resultados.registrar`. Replique `instituciones/pediatria/tests/permisos.test.js`: cada permiso anunciado debe coincidir con la autorización real.
+Formato `recurso.accion` en minúsculas. Los permisos exclusivos llevan el prefijo de la institución. Confirmados por el backend del Laboratorio: `laboratorio.solicitudes.ver`, `laboratorio.solicitudes.crear`, `laboratorio.resultados.ver`, `laboratorio.resultados.registrar` y `laboratorio.resultados.validar`. Confirmados por el backend de la Clínica Odontológica: `odontologia.citas.ver` y `odontologia.citas.gestionar`. Propuestos en el manifiesto del Hospital, a confirmar por su backend: `hospital.citas.ver` y `hospital.hospitalizacion.ver`. Replique `instituciones/pediatria/tests/permisos.test.js`: cada permiso anunciado debe coincidir con la autorización real.
 
 ## 10. Verificación y problemas frecuentes
 

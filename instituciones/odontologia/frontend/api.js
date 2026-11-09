@@ -1,35 +1,41 @@
-// Punto de integración de la Clínica Odontológica con SU backend.
-//
-// ESTADO: sin operaciones. No se declaran llamadas a endpoints que todavía no existen;
-// las páginas muestran el estado «pendiente de integración» mientras tanto.
-//
-// Cómo conectar (docs/GUIA_EQUIPO.md §7.3): declare cada operación sobre el cliente
-// común `http` (agrega el token, cierra la sesión ante 401 y convierte los errores en
-// ApiError { status, codigo, detalles }). Ejemplo, cuando la ruta ya exista:
-//
-//   import { seg } from '@plataforma/api/http.js';
-//   export function crearApiOdontologia({ get, post, put, patch }) {
-//     const P = id => `/api/pacientes/${seg(id)}`;
-//     return {
-//       pacientes: { listar: params => get('/api/pacientes', params), crear: datos => post('/api/pacientes', datos) },
-//       ...
-//     };
-//   }
-//
-// Operaciones comunes esperadas (rutas SUGERIDAS en docs/GUIA_EQUIPO.md §5.1;
-// el backend de la Clínica decide las definitivas y su persistencia interna):
-//   pacientes.listar(params)      GET   /api/pacientes?q=&estado=&limite=&pagina=  → { items, total }
-//   pacientes.crear(datos)        POST  /api/pacientes                             → 201 { id_paciente }
-//   pacientes.obtener(id)         GET   /api/pacientes/:id
-//   pacientes.archivar(id, m)     PATCH /api/pacientes/:id/archivar               { motivo_archivado }
-//   consultas.listar(id)          GET   /api/pacientes/:id/consultas
-//   consultas.crear(id, datos)    POST  /api/pacientes/:id/consultas               → 201 { id_consulta }
-//   consultas.agregarDiagnostico  POST  …/consultas/:c/diagnosticos               { codigo, descripcion }
-//   consultas.establecerTratamiento PUT …/consultas/:c/tratamiento                { descripcion, recomendaciones? }
-//   consultas.agregarPrescripcion POST  …/consultas/:c/prescripciones             { medicamentos: [...] }
-//   consultas.prescripciones(id)  GET   /api/pacientes/:id/prescripciones
-// Extensiones propias (propuesta, sin contrato todavía): citas odontológicas, piezas dentales
-// y tratamientos por pieza (componentes/PiezasDentales.jsx). Errores: formato común { error, codigo, detalles? }.
-export function crearApiOdontologia(http) { // eslint-disable-line no-unused-vars
-  return {};
+// Endpoints del módulo Clínica Odontológica (backend Cloud Firestore de instituciones/odontologia/backend).
+// Las rutas /api/* llegan a este módulo porque el token pertenece a clinica_odontologica.
+// Errores: formato común { error, codigo, detalles? }.
+import { seg } from '@plataforma/api/http.js';
+
+export function crearApiOdontologia(http) {
+  const { get, post, put, patch } = http;
+  const P = id => `/api/pacientes/${seg(id)}`;
+  const C = (id, c) => `${P(id)}/consultas/${seg(c)}`;
+  return {
+    panel: () => get('/api/panel'),
+    pacientes: {
+      listar: params => get('/api/pacientes', params),
+      crear: datos => post('/api/pacientes', datos),
+      obtener: id => get(P(id)),
+      administrativo: id => get(`${P(id)}/administrativo`),
+      archivar: (id, motivo_archivado) => patch(`${P(id)}/archivar`, { motivo_archivado }),
+      actualizarPieza: (id, pieza, datos) => put(`${P(id)}/piezas/${seg(pieza)}`, datos)
+    },
+    consultas: {
+      listar: id => get(`${P(id)}/consultas`),
+      crear: (id, datos) => post(`${P(id)}/consultas`, datos),
+      agregarDiagnostico: (id, c, d) => post(`${C(id, c)}/diagnosticos`, d),
+      agregarTratamiento: (id, c, t) => post(`${C(id, c)}/tratamientos`, t),
+      agregarPrescripcion: (id, c, rx) => post(`${C(id, c)}/prescripciones`, rx),
+      prescripciones: id => get(`${P(id)}/prescripciones`)
+    },
+    citas: {
+      listar: params => get('/api/citas', params),
+      programar: datos => post('/api/citas', datos),
+      cambiarEstado: (id, estado) => patch(`/api/citas/${seg(id)}/estado`, { estado })
+    },
+    catalogos: {
+      odontologos: () => get('/api/odontologos'),
+      crearOdontologo: datos => post('/api/odontologos', datos),
+      procedimientos: () => get('/api/procedimientos'),
+      crearProcedimiento: datos => post('/api/procedimientos', datos)
+    },
+    auditoria: params => get('/api/auditoria', params)
+  };
 }

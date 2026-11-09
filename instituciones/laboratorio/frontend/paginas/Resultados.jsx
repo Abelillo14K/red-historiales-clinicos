@@ -1,43 +1,48 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useModulo } from '@plataforma/modulos/ModuloContext.jsx';
-import { Card, ContextPanel, FilterBar, FormField, Icon, MetricStrip, PageHeader, PendienteIntegracion, TablaPendiente } from '@plataforma/ui/index.js';
+import { Card, DataTable, ErrorState, FilterBar, FormField, Icon, LoadingState, PageHeader, Pager, StatusBadge, useCarga } from '@plataforma/ui/index.js';
+import { fechaHora } from '@plataforma/formato.js';
+import { TONO_ESTADO } from '../componentes/formato.js';
 
-// Resultados de laboratorio. El listado solo usa datos generales; el detalle de cada
-// resultado depende del tipo de examen y lo presenta VisorResultado.
-const COLUMNAS = [
-  { clave: 'fecha', titulo: 'Fecha' }, { clave: 'paciente', titulo: 'Paciente' },
-  { clave: 'examen', titulo: 'Examen' }, { clave: 'estado', titulo: 'Estado' }
-];
+const LIMITE = 20;
 
 export default function Resultados() {
-  const { enlace } = useModulo();
+  const { api, puede, enlace } = useModulo();
+  const [params, setParams] = useSearchParams();
+  const estado = params.get('estado') || '';
+  const pagina = Number(params.get('pagina')) || 1;
+  const lista = useCarga(() => api.resultados.listar({ estado: estado || undefined, limite: LIMITE, pagina }), [api, estado, pagina]);
+  const ir = cambios => {
+    const p = new URLSearchParams(params);
+    for (const [k, v] of Object.entries(cambios)) v ? p.set(k, v) : p.delete(k);
+    setParams(p, { replace: true });
+  };
+
   return (
     <>
-      <PageHeader titulo="Resultados de laboratorio" descripcion="Resultados emitidos. Cada tipo de examen puede tener una estructura propia."
-        acciones={<Link className="btn btn-primary" to={enlace('/resultados/nuevo')}><Icon name="mas" size={16} />Ver diseño de registro</Link>} />
-      <PendienteIntegracion compacto />
-      <MetricStrip items={[
-        { etiqueta: 'Resultados emitidos', icono: 'resultado' }, { etiqueta: 'Pendientes de validación', icono: 'reloj' },
-        { etiqueta: 'Tipos de examen', icono: 'matraz' }
-      ]} />
-      <div className="workspace-grid"><div className="workspace-main">
+      <PageHeader titulo="Resultados de laboratorio" descripcion="Resultados preliminares y validados. Cada tipo de examen tiene sus propios parámetros."
+        acciones={puede('laboratorio.resultados.registrar') && <Link className="btn btn-primary" to={enlace('/solicitudes?estado=Pendiente')}><Icon name="mas" size={16} />Registrar desde una solicitud</Link>} />
       <Card titulo="Informes de laboratorio" icono="resultado">
-        <FilterBar etiqueta="Filtrar resultados">
-          <FormField label="Buscar" className="search-field">
-            {p => <div className="input-icon"><Icon name="buscar" /><input {...p} type="search" disabled placeholder="Paciente o examen" /></div>}
+        <FilterBar etiqueta="Filtrar resultados" resumen={lista.datos && <span role="status">{lista.datos.total} {lista.datos.total === 1 ? 'resultado' : 'resultados'}</span>}>
+          <FormField label="Estado">{p => (
+            <select {...p} value={estado} onChange={e => ir({ estado: e.target.value, pagina: '' })}>
+              <option value="">Todos</option><option value="Preliminar">Pendientes de validación</option><option value="Validado">Validados</option>
+            </select>)}
           </FormField>
-          <FormField label="Tipo de examen">{p => <select {...p} disabled><option>Todos</option></select>}</FormField>
         </FilterBar>
-        <TablaPendiente titulo="Resultados" columnas={COLUMNAS} />
+        <ErrorState error={lista.error} onReintentar={lista.recargar} />
+        {lista.cargando ? <LoadingState /> : lista.datos && <>
+          <DataTable titulo="Resultados" vacio="No hay resultados en esta vista" filas={lista.datos.items} claveFila={r => r.id_resultado} columnas={[
+            { clave: 'fecha', titulo: 'Fecha de análisis', principal: true, render: r => <Link className="row-link" to={enlace(`/resultados/${r.id_resultado}`)}>{fechaHora(r.fecha_analisis)}</Link> },
+            { clave: 'paciente', titulo: 'Paciente', render: r => r.paciente },
+            { clave: 'examen', titulo: 'Examen', render: r => r.tipo_examen },
+            { clave: 'emision', titulo: 'Emisión', render: r => (r.fecha_emision ? fechaHora(r.fecha_emision) : '—') },
+            { clave: 'estado', titulo: 'Estado', render: r => <StatusBadge tono={TONO_ESTADO[r.estado]}>{r.estado}</StatusBadge> },
+            { clave: 'accion', titulo: 'Acción', render: r => <Link className="btn btn-sm" to={enlace(`/resultados/${r.id_resultado}`)}>Ver informe<Icon name="derecha" size={14} /></Link> }
+          ]} />
+          <Pager pagina={pagina} limite={LIMITE} total={lista.datos.total} etiqueta="Páginas de resultados" onCambiar={n => ir({ pagina: n > 1 ? String(n) : '' })} />
+        </>}
       </Card>
-      </div><aside className="workspace-aside" aria-label="Contexto de resultados">
-        <ContextPanel titulo="Informe seleccionado" icono="resultado" items={[
-          ['Paciente', '—'], ['Examen', '—'], ['Fecha de emisión', '—'], ['Validado por', '—']
-        ]}>
-          <Link className="btn btn-block mt-4" to={enlace('/resultados/vista-previa')}>Ver diseño del informe</Link>
-        </ContextPanel>
-        <ContextPanel titulo="Estructura del resultado" icono="matraz" descripcion="Cada examen tendrá sus parámetros, unidades y referencias propias, definidos por el laboratorio." />
-      </aside></div>
     </>
   );
 }

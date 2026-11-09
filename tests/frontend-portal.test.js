@@ -8,6 +8,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { PERMISOS_POR_ROL } = require('../instituciones/pediatria/backend/permisos');
+const LAB = require('../instituciones/laboratorio/backend/permisos');
+const ODONTO = require('../instituciones/odontologia/backend/permisos');
 
 const SRC = path.join(__dirname, '..', 'apps', 'web', 'src');
 const INST = path.join(__dirname, '..', 'instituciones');
@@ -43,20 +45,38 @@ test('cada institución tiene una presentación única que su manifiesto reutili
   }
 });
 
-test('sesión de Pediatría: Pediatría disponible y las demás pendientes, en el orden del proyecto', () => {
+test('sesión de Pediatría: Pediatría disponible, Odontología y Laboratorio conectados sin autorización, Hospital pendiente, en el orden del proyecto', () => {
   for (const rol of Object.keys(PERMISOS_POR_ROL)) {
     assert.deepEqual(estados(sesion(rol)), [
       ['Centro Médico Pediátrico', 'disponible'], ['Hospital General', 'pendiente'],
-      ['Clínica Odontológica', 'pendiente'], ['Laboratorio Clínico', 'pendiente']
+      ['Clínica Odontológica', 'sin_autorizacion'], ['Laboratorio Clínico', 'sin_autorizacion']
     ], rol);
   }
   const [pediatria, ...resto] = P.tarjetasPortal(presentaciones, registro, sesion('medico'));
   assert.equal(pediatria.institucion, 'centro_pediatrico');
-  for (const t of resto) assert.equal(t.institucion, null, 'un módulo sin registrar no aporta identificador ni acceso');
+  for (const t of resto.filter(t => t.estado === 'pendiente')) assert.equal(t.institucion, null, 'un módulo sin registrar no aporta identificador ni acceso');
+});
+
+test('sesión del Laboratorio: solo el Laboratorio está disponible', () => {
+  for (const rol of LAB.ROLES) {
+    assert.deepEqual(estados({ usuario: 'U', rol, institucion: 'laboratorio_clinico', permisos: LAB.PERMISOS_POR_ROL[rol] }), [
+      ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'pendiente'],
+      ['Clínica Odontológica', 'sin_autorizacion'], ['Laboratorio Clínico', 'disponible']
+    ], rol);
+  }
+});
+
+test('sesión de la Clínica Odontológica: solo la Clínica está disponible', () => {
+  for (const rol of ODONTO.ROLES) {
+    assert.deepEqual(estados({ usuario: 'U', rol, institucion: 'clinica_odontologica', permisos: ODONTO.PERMISOS_POR_ROL[rol] }), [
+      ['Centro Médico Pediátrico', 'sin_autorizacion'], ['Hospital General', 'pendiente'],
+      ['Clínica Odontológica', 'disponible'], ['Laboratorio Clínico', 'sin_autorizacion']
+    ], rol);
+  }
 });
 
 test('sin autorización del backend no hay acceso real a ninguna institución', () => {
-  const pendientes = [['Hospital General', 'pendiente'], ['Clínica Odontológica', 'pendiente'], ['Laboratorio Clínico', 'pendiente']];
+  const pendientes = [['Hospital General', 'pendiente'], ['Clínica Odontológica', 'sin_autorizacion'], ['Laboratorio Clínico', 'sin_autorizacion']];
   // Sesión de otra institución (aunque su módulo exista en el repositorio), sin permisos o inexistente.
   for (const s of [sesion('medico', 'hospital_general'), sesion('medico', 'otra_institucion'), { usuario: 'U', rol: 'medico', institucion: 'centro_pediatrico' }, null]) {
     assert.deepEqual(estados(s), [['Centro Médico Pediátrico', 'sin_autorizacion'], ...pendientes], JSON.stringify(s));
