@@ -11,9 +11,9 @@ Alineado con `docs/GUIA_EQUIPO.md` (sesión §3, errores §4, permisos §9). Esq
 
 ## En el servidor común (puerto 3001)
 1. En la raíz del repositorio: `npm run hospital:install`.
-2. En el `.env` de la raíz: `HOSPITAL_DB_USER` y `HOSPITAL_DB_PASSWORD` (opcionales: `HOSPITAL_DB_HOST`, `HOSPITAL_DB_PORT`, `HOSPITAL_DB_NAME`).
-3. Ejecute `sql/01_esquema.sql` y `sql/02_datos_base.sql`, y cree el usuario MySQL de la app.
-4. Cree las cuentas con el prefijo `hosp.`: `npm run hospital:usuario -- hosp.admin <contraseña> administrador`. Para que un médico registre consultas a su nombre, agregue su `id_medico` al final.
+2. En el `.env` de la raíz: `HOSPITAL_DB_USER`, `HOSPITAL_DB_PASSWORD` y, para el paso 3, `HOSPITAL_ADMIN_USER` y `HOSPITAL_ADMIN_PASSWORD` (opcionales: `HOSPITAL_DB_HOST`, `HOSPITAL_DB_PORT`).
+3. `npm run hospital:esquema`: crea la base, los datos base y el usuario de la app. Si la base ya existe, no la modifica.
+4. `npm run hospital:usuarios`: crea `hosp.admin`, `hosp.medico`, `hosp.enfermeria` y `hosp.recepcion`, y guarda sus contraseñas en `DATOS_DE_ACCESO_HOSPITAL.txt`, fuera del repositorio. `hosp.medico` queda vinculada al primer médico activo. Para cuentas adicionales: `npm run hospital:usuario -- hosp.<nombre> <contraseña> <rol> [id_medico]`.
 5. `npm start` debe mostrar `Hospital General: MySQL conectado`. Se entra por el formulario común con la cuenta `hosp.*`.
 
 ## Estructura

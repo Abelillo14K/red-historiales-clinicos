@@ -45,6 +45,7 @@ mongod-data/
 
 # --- Capturas generadas por las pruebas E2E ---------------------------------
 instituciones/pediatria/tests/e2e/capturas/
+instituciones/hospital/tests/e2e/capturas/
 tests/e2e/capturas-vista-previa/
 
 # --- Registros, temporales y cachés -----------------------------------------

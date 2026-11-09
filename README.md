@@ -91,8 +91,9 @@ Se entra con **usuario y contraseña**. Las cuentas iniciales (una por rol) se c
 ## Pruebas
 
 ```powershell
-npm test                      # plataforma (33) + Pediatría (119) + Laboratorio (58) + Odontología (31, más las del emulador si hay Java 21+) + Hospital (18, con MySQL Server instalado)
+npm test                      # plataforma (33) + Pediatría (119) + Laboratorio (58) + Odontología (31, más las del emulador si hay Java 21+) + Hospital (23, con MySQL Server instalado)
 npm run test:e2e              # Pediatría en Edge/Chrome con MongoDB desechable (27 pasos)
+npm run test:e2e:hospital     # Hospital en Edge/Chrome con MySQL desechable (11 pasos)
 npm run test:e2e:vista-previa # vista previa de desarrollo (7 pasos)
 npm run test:todo             # todo lo anterior
 ```
@@ -110,7 +111,7 @@ npm run test:todo             # todo lo anterior
 | `npm run lab:esquema` · `npm run test:laboratorio` | Laboratorio: aplicar el esquema y pruebas |
 | `npm run odonto:emulador` · `npm run test:odontologia` | Odontología: descargar el emulador y pruebas |
 | `npm run lab:usuarios` · `npm run odonto:usuarios` | Crean las cuentas `lab.*` y `odonto.*` |
-| `npm run hospital:install` · `npm run hospital:usuario -- hosp.<nombre> <contraseña> <rol>` | Hospital: instala sus dependencias y crea una cuenta `hosp.*` |
+| `npm run hospital:install` · `npm run hospital:esquema` · `npm run hospital:usuarios` | Hospital: instala sus dependencias, crea la base y crea una cuenta `hosp.*` por rol |
 | `npm run web:install` | Agrega o actualiza dependencias de la aplicación web |
 
 ## Trabajo en equipo y seguridad

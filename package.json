@@ -25,12 +25,15 @@
     "lab:usuarios": "node instituciones/laboratorio/scripts/usuarios.js",
     "odonto:usuarios": "node instituciones/odontologia/scripts/usuarios.js",
     "hospital:install": "npm --prefix instituciones/hospital/backend ci",
+    "hospital:esquema": "node --env-file=.env instituciones/hospital/backend/scripts/esquema.js",
+    "hospital:usuarios": "node --env-file=.env instituciones/hospital/backend/scripts/usuarios.js",
     "hospital:usuario": "node --env-file=.env instituciones/hospital/backend/scripts/crear-usuario.js",
     "odonto:emulador": "npx --yes firebase-tools@14 setup:emulators:firestore",
     "test:hospital": "node --test instituciones/hospital/tests/*.test.js",
     "test:e2e": "npm run build && node instituciones/pediatria/tests/e2e/flujo-ui.e2e.js",
+    "test:e2e:hospital": "npm run build && node instituciones/hospital/tests/e2e/flujo-ui.e2e.js",
     "test:e2e:vista-previa": "node tests/e2e/vista-previa.e2e.js",
-    "test:todo": "npm test && npm run test:e2e && npm run test:e2e:vista-previa"
+    "test:todo": "npm test && npm run test:e2e && npm run test:e2e:hospital && npm run test:e2e:vista-previa"
   },
   "dependencies": {
     "dotenv": "^16.4.5",

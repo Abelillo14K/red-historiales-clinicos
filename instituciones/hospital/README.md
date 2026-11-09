@@ -17,7 +17,7 @@ instituciones/hospital/
   tests/                       integración sobre un MySQL desechable (npm run test:hospital)
   backend/                     Express + MySQL (ESM, con su propio package.json)
     sql/                         esquema de 29 tablas y datos base ficticios
-    scripts/crear-usuario.js     npm run hospital:usuario
+    scripts/                     esquema.js, usuarios.js y crear-usuario.js (npm run hospital:*)
     src/modulo.js                composición para el servidor común
     src/router.js                rutas relativas a /api, incluida GET /sesion
     src/rutas/                   panel, pacientes, clínico, citas, hospitalización, catálogos, auditoría e inicio de sesión
@@ -37,4 +37,4 @@ Se entra por el formulario común con una cuenta que empiece con `hosp.`. La cue
 
 ## Pruebas
 
-`npm run test:hospital` levanta un MySQL desechable y nunca toca `historial_clinico`. Requiere `npm run hospital:install` y MySQL Server instalado; si falta alguno, las pruebas se omiten.
+`npm run test:hospital` (23 pruebas) y `npm run test:e2e:hospital` (11 pasos en navegador) levantan un MySQL desechable y nunca tocan `historial_clinico`. Requieren `npm run hospital:install` y MySQL Server instalado; si falta alguno, las pruebas se omiten.
