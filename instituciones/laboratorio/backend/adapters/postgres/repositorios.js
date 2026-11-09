@@ -316,6 +316,18 @@ function crearRepositorios(q) {
       [d.nombres, d.apellidos, d.cargo, d.numero_colegiado ?? null, d.usuario])
   };
 
+  const cuentas = {
+    obtener: usuario => fila(
+      'SELECT usuario, rol, hash_contrasena, activo FROM laboratorio.cuenta_acceso WHERE usuario = $1', [String(usuario)]),
+    async crear(c) {
+      await q('INSERT INTO laboratorio.cuenta_acceso (usuario, rol, hash_contrasena) VALUES ($1,$2,$3)',
+        [c.usuario, c.rol, c.hash_contrasena]);
+    },
+    async actualizarContrasena(usuario, hash) {
+      await q('UPDATE laboratorio.cuenta_acceso SET hash_contrasena = $2, actualizado = now() WHERE usuario = $1', [usuario, hash]);
+    }
+  };
+
   const auditoria = {
     async registrar(e) {
       await q(`INSERT INTO laboratorio.bitacora (usuario, rol, accion, id_paciente, recurso, resultado, detalle)
@@ -330,7 +342,7 @@ function crearRepositorios(q) {
       [id_paciente ?? null, accion || null, limite]))
   };
 
-  return { pacientes, solicitudes, resultados, catalogos, auditoria };
+  return { pacientes, solicitudes, resultados, catalogos, cuentas, auditoria };
 }
 
 module.exports = { crearRepositorios, idValido };
