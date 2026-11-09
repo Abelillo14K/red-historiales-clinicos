@@ -39,8 +39,24 @@ function crearApp(servicios, { frontendDist = path.join(__dirname, '..', '..', '
 
   app.get('/salud', (_req, res) => res.json({ servicio: 'centro-pediatrico', ok: true }));
 
+  // Las cuentas de otras instituciones llevan su prefijo (lab., odonto.) y se validan en su propia base.
+  const moduloDeUsuario = usuario => Object.values(instituciones).find(m =>
+    m.prefijoUsuario && typeof m.autenticar === 'function' && usuario.toLowerCase().startsWith(m.prefijoUsuario));
+
   app.post('/auth/login', M.limitador({ ventanaMs: 60_000, maximo: 20 }), M.asyncRoute(async (req, res) => {
-    const cuenta = await servicios.autenticacion.iniciarSesion(S.login.parse(req.body));
+    const datos = S.login.parse(req.body);
+    const modulo = moduloDeUsuario(datos.usuario);
+    if (modulo) {
+      try {
+        const r = await modulo.autenticar(datos.usuario, datos.contrasena);
+        return res.json({ token: r.token, usuario: r.usuario, rol: r.rol });
+      } catch (e) {
+        // Los módulos responden con su propio DomainError (status y código ya definidos).
+        if (Number.isInteger(e.status) && e.code) return res.status(e.status).json({ error: e.message, codigo: e.code });
+        throw e;
+      }
+    }
+    const cuenta = await servicios.autenticacion.iniciarSesion(datos);
     res.json({ token: firmarToken(cuenta), usuario: cuenta.usuario, rol: cuenta.rol });
   }));
 
