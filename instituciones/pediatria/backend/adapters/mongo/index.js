@@ -12,6 +12,7 @@ const INDICES = [
   ['medicos', { id_medico: 1 }, { unique: true }],
   ['medicos', { colegiado: 1 }, { unique: true }],
   ['vacunas', { id_vacuna: 1 }, { unique: true }],
+  ['usuarios', { usuario: 1 }, { unique: true }],
   ['bitacora_acceso', { id_paciente: 1, fecha_hora: -1 }, {}],
   ['bitacora_acceso', { fecha_hora: -1 }, {}],
   // Entrega idempotente de eventos; parcial para no exigirlo a eventos anteriores a Fase II.
@@ -62,6 +63,7 @@ function crearRepositoriosMongo(client, db) {
     pacientes: R.crearPacienteRepository(db),
     medicos: R.crearMedicoRepository(db),
     vacunas: R.crearVacunaRepository(db),
+    usuarios: R.crearUsuarioRepository(db),
     auditoria: R.crearAuditoriaRepository(db),
     unidad: crearUnidadDeTrabajo(client, db),
     capacidades: capacidadesConCache(db)

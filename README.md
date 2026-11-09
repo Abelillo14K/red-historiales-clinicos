@@ -69,7 +69,7 @@ npm run dev                 # API en http://localhost:3001 (se reinicia al guard
 npm run web:dev             # interfaz en http://localhost:5173 (incluye /vista-previa)
 ```
 
-En la pantalla de acceso, el **modo de desarrollo** permite entrar como Médico, Secretaría o Administrador. `http://localhost:3001/salud` debe responder `{"servicio":"centro-pediatrico","ok":true}`. Si el puerto está ocupado: `$env:PORT=3002` (y `$env:VITE_API_PROXY="http://localhost:3002"` para `web:dev`).
+Se entra con **usuario y contraseña**. Las cuentas iniciales (una por rol) se crean una sola vez con `npm run db:crear-accesos`, que deja los datos en `CREDENCIALES_ACCESO.txt`, excluido de Git. `http://localhost:3001/salud` debe responder `{"servicio":"centro-pediatrico","ok":true}`. Si el puerto está ocupado: `$env:PORT=3002` (y `$env:VITE_API_PROXY="http://localhost:3002"` para `web:dev`).
 
 | Problema | Solución |
 |---|---|
@@ -81,7 +81,7 @@ En la pantalla de acceso, el **modo de desarrollo** permite entrar como Médico,
 ## Pruebas
 
 ```powershell
-npm test                      # 148 pruebas: plataforma (30) + Pediatría (118)
+npm test                      # 148 pruebas: plataforma (29) + Pediatría (119)
 npm run test:e2e              # Pediatría en Edge/Chrome con MongoDB desechable (27 pasos)
 npm run test:e2e:vista-previa # vista previa de las instituciones pendientes (12 pasos)
 npm run test:todo             # todo lo anterior
@@ -96,11 +96,11 @@ npm run test:todo             # todo lo anterior
 | `npm start` · `npm run dev` | Servidor (API + aplicación compilada) en el puerto 3001 |
 | `npm run build` · `npm run web:dev` | Compila la aplicación web · servidor de desarrollo en el puerto 5173 |
 | `npm run db:indices` · `db:validadores` · `db:diagnostico` · `db:respaldo` · `db:restaurar-aislado` | Operación de MongoDB de Pediatría |
-| `npm run token:dev -- <rol> <usuario>` | JWT de desarrollo |
+| `npm run db:crear-accesos` | Crea las cuentas iniciales y `CREDENCIALES_ACCESO.txt` (no modifica cuentas existentes) |
 | `npm run web:install` | Agrega o actualiza dependencias de la aplicación web |
 
 ## Trabajo en equipo y seguridad
 
 - Cada integrante trabaja en su carpeta `instituciones/<x>/`. Los cambios compartidos (`apps/web/`, `tests/`, `docs/`, `package.json`) se avisan al equipo. Detalle en [`docs/GUIA_EQUIPO.md`](docs/GUIA_EQUIPO.md) §11.
 - Antes de integrar en `main`: `npm test` y `npm run build`, y los E2E si se tocó algo compartido. Las ramas y los pull requests se usan cuando son útiles; no se exige aprobación de otro integrante. `main` no admite force-push ni eliminación.
-- Nunca suba `.env`, secretos JWT, URIs con contraseña, tokens ni respaldos (`.gitignore` los excluye). El acceso de desarrollo (`/auth/dev-login`) solo responde desde el propio equipo y se desactiva con `NODE_ENV=production`.
+- Nunca suba `.env`, secretos JWT, URIs con contraseña, tokens ni respaldos (`.gitignore` los excluye). Tampoco suba ni publique `CREDENCIALES_ACCESO.txt`. En la base, las contraseñas solo se guardan cifradas con scrypt.

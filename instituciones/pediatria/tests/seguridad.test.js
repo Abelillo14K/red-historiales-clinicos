@@ -3,7 +3,7 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
-const { iniciar, token } = require('./helpers');
+const { iniciar, token, CONTRASENA_PRUEBA } = require('./helpers');
 const { autenticarPeticion } = require('../backend/security');
 
 const conToken = t => ({ headers: { Authorization: `Bearer ${t}` } });
@@ -33,9 +33,40 @@ describe('Tokens JWT', () => {
     assert.equal((await pedir(valido)).status, 200);
   });
 
-  test('el inicio de sesión de desarrollo valida rol y usuario', async () => {
-    assert.equal((await ctx.api('POST', '/auth/dev-login', { body: { rol: 'administrador', usuario: 'a b' } })).status, 400);
-    assert.equal((await ctx.api('POST', '/auth/dev-login', { body: { rol: 'medico', extra: 1 } })).status, 400);
+  test('el inicio de sesión rechaza credenciales incorrectas sin revelar cuentas', async () => {
+    const entrar = body => ctx.api('POST', '/auth/login', { body });
+    const malas = [
+      await entrar({ usuario: 'usr-medico', contrasena: 'incorrecta' }),
+      await entrar({ usuario: 'no-existe', contrasena: CONTRASENA_PRUEBA }),
+      await entrar({ usuario: 'usr-inactivo', contrasena: CONTRASENA_PRUEBA })
+    ];
+    for (const r of malas) {
+      assert.equal(r.status, 401);
+      assert.deepEqual(r.datos, { error: 'Usuario o contraseña incorrectos', codigo: 'CREDENCIALES_INVALIDAS' });
+    }
+    const fallidos = ctx.repos._bitacora.filter(e => e.accion === 'INICIO_SESION_FALLIDO');
+    assert.ok(fallidos.length >= 3 && fallidos.every(e => e.resultado === 'DENEGADO'));
+    assert.ok(!JSON.stringify(ctx.repos._bitacora).includes('incorrecta'), 'la bitácora no guarda contraseñas');
+  });
+
+  test('el inicio de sesión valida su entrada y no acepta operadores', async () => {
+    const entrar = body => ctx.api('POST', '/auth/login', { body });
+    assert.equal((await entrar({ usuario: 'a b', contrasena: 'x' })).status, 400);
+    assert.equal((await entrar({ usuario: { $ne: null }, contrasena: 'x' })).status, 400);
+    assert.equal((await entrar({ usuario: 'usr-medico', contrasena: CONTRASENA_PRUEBA, rol: 'administrador' })).status, 400);
+  });
+
+  test('las contraseñas se guardan cifradas y una huella dañada no da acceso', async () => {
+    const { cifrarContrasena, verificarContrasena } = require('../backend/contrasenas');
+    const h = await cifrarContrasena('secreta-de-prueba');
+    assert.ok(!h.includes('secreta-de-prueba'));
+    assert.notEqual(h, await cifrarContrasena('secreta-de-prueba'), 'cada huella usa su propia sal');
+    assert.equal(await verificarContrasena('secreta-de-prueba', h), true);
+    assert.equal(await verificarContrasena('otra', h), false);
+    for (const dañada of [null, '', 'texto-plano', 'scrypt$a$b$c$d$e']) assert.equal(await verificarContrasena('x', dañada), false);
+  });
+
+  test('la configuración del servidor es obligatoria para autenticar', async () => {
     const previo = process.env.JWT_SECRET;
     try {
       process.env.JWT_SECRET = '';

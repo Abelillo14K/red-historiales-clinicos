@@ -25,7 +25,7 @@
 
 ### Verificación por línea de comandos (opcional)
 ```powershell
-$t = (npm run --silent token:dev -- medico).Trim()
+$t = (Invoke-RestMethod -Method Post http://localhost:3001/auth/login -ContentType 'application/json' -Body '{"usuario":"medico","contrasena":"<contraseña de CREDENCIALES_ACCESO.txt>"}').token
 Invoke-RestMethod http://localhost:3001/api/sesion -Headers @{Authorization="Bearer $t"}
 Invoke-RestMethod http://localhost:3001/api/pacientes/P001/crecimiento -Headers @{Authorization="Bearer $t"}
 ```

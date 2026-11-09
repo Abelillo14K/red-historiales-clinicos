@@ -23,7 +23,10 @@ const { crearRepositoriosMongo, asegurarIndices } = require('../../backend/adapt
 const A = require('../../backend/adapters/mongo/administracionValidadores');
 const { crearServicios } = require('../../backend/application');
 const { crearApp } = require('../../backend/app');
-const { firmarTokenDesarrollo } = require('../../backend/security');
+const { firmarToken } = require('../../backend/security');
+const { cifrarContrasenaSincrona } = require('../../backend/contrasenas');
+
+const CONTRASENA_E2E = 'contrasena-solo-para-e2e';
 
 const CAPTURAS = path.join(__dirname, 'capturas');
 const DIST = path.join(__dirname, '..', '..', '..', '..', 'apps', 'web', 'dist');
@@ -48,12 +51,15 @@ const captura = nombre => page.screenshot({ path: path.join(CAPTURAS, `${nombre}
 const toast = texto => page.locator('.toast').filter({ hasText: texto }).first().waitFor({ timeout: 8000 });
 const dialogo = () => page.locator('dialog[open]').last();
 
-async function entrar(rol, usuario) {
+async function llenarAcceso(usuario, contrasena = CONTRASENA_E2E) {
+  await page.getByLabel('Usuario').fill(usuario);
+  await page.getByLabel('Contraseña').fill(contrasena);
+  await page.getByRole('button', { name: 'Iniciar sesión' }).click();
+}
+
+async function entrar(usuario) {
   await page.goto(`${base}/login`);
-  const etiqueta = { medico: 'Médico', secretaria: 'Secretaría', administrador: 'Administrador' }[rol];
-  await page.getByLabel(etiqueta, { exact: true }).check();
-  await page.getByLabel('Identificador de usuario').fill(usuario);
-  await page.getByRole('button', { name: 'Entrar (modo desarrollo)' }).click();
+  await llenarAcceso(usuario);
   // Nuevo flujo: inicio de sesión → portal de instituciones → panel de Pediatría.
   await portal();
   await page.getByRole('link', { name: 'Ingresar a Centro Médico Pediátrico' }).click();
@@ -113,6 +119,9 @@ async function main() {
   for (const c of A.COLECCIONES) await db.createCollection(c);
   await A.aplicar(db);
   await asegurarIndices(db);
+  const huella = cifrarContrasenaSincrona(CONTRASENA_E2E);
+  await db.collection('usuarios').insertMany([['E2E-SEC', 'secretaria'], ['E2E-MED', 'medico'], ['E2E-ADM', 'administrador'], ['E2E-CAPT', 'administrador'],
+    ['E2E-MOVIL', 'administrador'], ['E2E-ENLACE', 'administrador']].map(([usuario, rol]) => ({ usuario, nombre: 'Cuenta ficticia', rol, contrasena_hash: huella, activo: true, fecha_registro: new Date() })));
   await db.collection('medicos').insertMany([
     { id_medico: 'M001', colegiado: 'COL-E1', nombres: 'Ana', apellidos: 'Ficticia', especialidad: { id_especialidad: 'E001', nombre: 'Pediatría General' } },
     { id_medico: 'M002', colegiado: 'COL-E2', nombres: 'Luis', apellidos: 'Ficticio', especialidad: { id_especialidad: 'E002', nombre: 'Neonatología' } }
@@ -143,13 +152,16 @@ async function main() {
     });
     console.log(`Navegador: ${browser.version()} · API: ${base} · MongoDB desechable: ${mongo.uri}`);
 
-    await paso('1. Iniciar sesión con rol de desarrollo (secretaría)', async () => {
+    await paso('1. Iniciar sesión con usuario y contraseña (secretaría)', async () => {
       await page.goto(base);
       await page.getByRole('heading', { name: 'Iniciar sesión' }).waitFor();
-      await page.getByRole('button', { name: 'Entrar (modo desarrollo)' }).waitFor();
+      await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
       await auditarAccesibilidad('Inicio de sesión'); await auditarContraste('Inicio de sesión');
       await captura('00-login');
-      await entrar('secretaria', 'E2E-SEC');
+      await llenarAcceso('E2E-SEC', 'contrasena-incorrecta');
+      await page.getByText('Usuario o contraseña incorrectos').waitFor();
+      assert.equal(await tokenSesion(), null, 'una contraseña incorrecta no abre sesión');
+      await entrar('E2E-SEC');
       await captura('01-panel-secretaria');
     });
 
@@ -289,7 +301,7 @@ async function main() {
     });
 
     await paso('7. Médico registra consulta con diagnóstico, tratamiento, receta y control sin perímetro', async () => {
-      await entrar('medico', 'E2E-MED');
+      await entrar('E2E-MED');
       await page.goto(`${base}/pacientes/${id}`);
       assert.match(await page.locator('table').first().textContent(), /•+0101/, 'el médico ve el DPI enmascarado');
       await page.getByRole('link', { name: 'Nueva consulta' }).first().click();
@@ -393,7 +405,7 @@ async function main() {
     });
 
     await paso('15. Administrador archiva el expediente (otra causa administrativa)', async () => {
-      await entrar('administrador', 'E2E-ADM');
+      await entrar('E2E-ADM');
       await page.locator('.stat').filter({ hasText: 'Consultas registradas' }).waitFor();
       await captura('14a-panel-administrador');
       await page.goto(`${base}/pacientes/${id}`);
@@ -429,7 +441,7 @@ async function main() {
     });
 
     await paso('16. Expediente archivado: el médico no puede leerlo ni modificarlo', async () => {
-      await entrar('medico', 'E2E-MED');
+      await entrar('E2E-MED');
       await page.goto(`${base}/pacientes/${id}`);
       await page.getByText('Acceso restringido').waitFor();
       const r = await apiDesdeNavegador('POST', `/api/pacientes/${id}/consultas`, { id_medico: 'M001', fecha_hora: new Date().toISOString(), motivo: 'No debe guardarse' });
@@ -463,7 +475,7 @@ async function main() {
     });
 
     await paso('Médicos y vacunación global', async () => {
-      await entrar('medico', 'E2E-MED');
+      await entrar('E2E-MED');
       await page.getByRole('link', { name: 'Médicos' }).click();
       await page.getByRole('cell', { name: 'COL-E2' }).waitFor();
       await page.getByLabel('Especialidad').selectOption('Neonatología');
@@ -561,7 +573,7 @@ async function main() {
     });
 
     await paso('Capturas comparativas claro/oscuro del expediente (administrador)', async () => {
-      await entrar('administrador', 'E2E-CAPT');
+      await entrar('E2E-CAPT');
       for (const esquema of ['claro', 'oscuro']) {
         await page.evaluate(t => localStorage.setItem('plataforma.tema', t), esquema);
         for (const [ruta, nombre] of [['/', 'panel'], [`/pacientes/${id}`, 'expediente'], [`/pacientes/${id}/consultas`, 'consultas'],
@@ -673,7 +685,7 @@ async function main() {
           await captura(`movil-login-${tema}-acceso`);
         }
         await page.evaluate(() => localStorage.setItem('plataforma.tema', 'claro'));
-        await entrar('administrador', 'E2E-MOVIL');
+        await entrar('E2E-MOVIL');
         for (const ruta of ['/', '/pacientes?estado=Todos', `/pacientes/${id}`, `/pacientes/${id}/consultas`, `/pacientes/${id}/prescripciones`, `/pacientes/${id}/crecimiento`, `/pacientes/${id}/vacunacion`, `/pacientes/${id}/auditoria`, '/auditoria']) {
           await page.goto(base + ruta);
           await page.waitForLoadState('networkidle');
@@ -716,9 +728,7 @@ async function main() {
       // Enlace profundo sin sesión: tras iniciar sesión se abre la página pedida, no el portal.
       await page.goto(`${base}/pacientes/${id}/consultas`);
       await page.getByRole('heading', { name: 'Iniciar sesión' }).waitFor();
-      await page.getByLabel('Administrador', { exact: true }).check();
-      await page.getByLabel('Identificador de usuario').fill('E2E-ENLACE');
-      await page.getByRole('button', { name: 'Entrar (modo desarrollo)' }).click();
+      await llenarAcceso('E2E-ENLACE');
       await page.getByRole('tabpanel', { name: 'Consultas' }).waitFor();
       assert.equal(new URL(page.url()).pathname, `/pacientes/${id}/consultas`);
       // Cerrar sesión desde el portal: se vuelve al inicio de sesión y el portal deja de ser accesible.
@@ -729,7 +739,7 @@ async function main() {
       await page.goto(`${base}/instituciones`);
       await page.getByRole('heading', { name: 'Iniciar sesión' }).waitFor();
       // Token vencido (firmado con el secreto de esta prueba): el backend lo rechaza.
-      const vencido = firmarTokenDesarrollo({ usuario: 'E2E-VENCIDO', rol: 'medico' }, -60);
+      const vencido = firmarToken({ usuario: 'E2E-VENCIDO', rol: 'medico' }, -60);
       await page.goto(`${base}/instituciones#access_token=${vencido}`);
       await page.getByRole('heading', { name: 'Iniciar sesión' }).waitFor();
       await page.locator('.login-card .alert').first().waitFor();
@@ -741,7 +751,7 @@ async function main() {
       await page.locator('.login-card .alert').first().waitFor();
       assert.equal(await tokenSesion(), null);
       // Vencimiento mientras se está en el portal: vuelve solo al inicio de sesión.
-      const corto = firmarTokenDesarrollo({ usuario: 'E2E-CORTO', rol: 'medico' }, 4);
+      const corto = firmarToken({ usuario: 'E2E-CORTO', rol: 'medico' }, 4);
       await page.goto(`${base}/instituciones#access_token=${corto}`);
       await portal();
       await page.getByRole('heading', { name: 'Iniciar sesión' }).waitFor({ timeout: 10000 });
@@ -753,7 +763,7 @@ async function main() {
       await page.evaluate(() => localStorage.setItem('plataforma.tema', 'oscuro'));
       await page.goto(`${base}/login`);
       await page.getByRole('heading', { name: 'Iniciar sesión' }).waitFor();
-      await page.getByRole('button', { name: 'Entrar (modo desarrollo)' }).waitFor();
+      await page.getByRole('button', { name: 'Iniciar sesión' }).waitFor();
       await auditarAccesibilidad('Inicio de sesión (oscuro)');
       await auditarContraste('Inicio de sesión (oscuro)');
       await captura('comparativa-oscuro-login');
@@ -765,6 +775,7 @@ async function main() {
       simulandoCaida = true;
       await page.route(/\/(api|auth)\//, r => r.abort('connectionrefused'));
       await page.reload();
+      await llenarAcceso('E2E-SEC');
       await page.getByText('No se pudo conectar con el servidor').first().waitFor();
       await captura('error-conexion');
       await page.unroute(/\/(api|auth)\//);

@@ -19,7 +19,7 @@ const { chromium } = require('playwright-core');
 const { crearApp } = require('../../instituciones/pediatria/backend/app');
 const { crearServicios } = require('../../instituciones/pediatria/backend/application');
 const { crearRepositoriosMemoria } = require('../../instituciones/pediatria/tests/doubles/memoria');
-const { fixtures } = require('../../instituciones/pediatria/tests/helpers');
+const { fixtures, CONTRASENA_PRUEBA } = require('../../instituciones/pediatria/tests/helpers');
 const UI = require('./auditoria-ui');
 
 const FRONTEND = path.join(__dirname, '..', '..', 'apps', 'web');
@@ -150,9 +150,9 @@ async function main() {
     await paso('Sesión real de Pediatría y enlace de desarrollo a la vista previa', async () => {
       await page.goto(`${base}/login`);
       await page.getByRole('link', { name: 'Vista previa de los módulos pendientes' }).waitFor();
-      await page.getByLabel('Administrador', { exact: true }).check();
-      await page.getByLabel('Identificador de usuario').fill('E2E-VP-ADMIN');
-      await page.getByRole('button', { name: 'Entrar (modo desarrollo)' }).click();
+      await page.getByLabel('Usuario').fill('usr-administrador');
+      await page.getByLabel('Contraseña').fill(CONTRASENA_PRUEBA);
+      await page.getByRole('button', { name: 'Iniciar sesión' }).click();
       await portal();
       await page.getByRole('link', { name: 'Ingresar a Centro Médico Pediátrico' }).click();
       await h1('Panel principal');

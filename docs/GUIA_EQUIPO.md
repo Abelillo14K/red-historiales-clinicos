@@ -93,7 +93,7 @@ El token viaja en `Authorization: Bearer <JWT>`. El frontend lo guarda en `sessi
 ### 3.3 Obtención del token
 
 - **Inicio de sesión común (pendiente del equipo):** debe redirigir a `https://<host>/#access_token=<JWT>`. La interfaz lee el fragmento, lo borra de la URL y llama a `/api/sesion`.
-- **Mientras tanto:** la pantalla de acceso permite pegar un token y ofrece un modo de desarrollo sin contraseña, solo para la institución que atiende este backend y desactivado con `NODE_ENV=production`.
+- **Inicio de sesión actual:** `POST /auth/login` con `{ usuario, contrasena }`, contra la colección `usuarios` de la institución que atiende este backend. Devuelve el JWT de la sesión; el usuario nunca lo ve ni lo escribe.
 - **Varias instituciones por usuario (no implementado):** el backend tendría que informar las instituciones autorizadas y emitir un token por institución. El frontend solo cambiaría `sesionAutorizaA()` en `plataforma/portal/portal.js`.
 
 ## 4. Contrato HTTP y errores
@@ -116,6 +116,7 @@ El token viaja en `Authorization: Bearer <JWT>`. El frontend lo guarda en `sessi
 | Datos inválidos (esquema, JSON malformado, id en la ruta) | 400 | `VALIDACION` |
 | Regla de negocio incumplida | 400 | `REGLA_NEGOCIO` |
 | Sin token · token alterado o ajeno · sesión expirada | 401 | `NO_AUTENTICADO` · `TOKEN_INVALIDO` · `TOKEN_EXPIRADO` |
+| Usuario o contraseña incorrectos | 401 | `CREDENCIALES_INVALIDAS` |
 | Rol sin permiso | 403 | `ROL_SIN_PERMISO` |
 | Institución no registrada en el servidor · token de otra institución en un módulo | 403 | `INSTITUCION_NO_REGISTRADA` · `INSTITUCION_NO_AUTORIZADA` |
 | Acceso prohibido por regla (p. ej., historial archivado) | 403 | `PROHIBIDO` |

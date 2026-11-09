@@ -62,8 +62,7 @@ export function crearHttp({ base = '', obtenerToken = () => null, alNoAutorizado
 // Endpoints comunes de la plataforma (contrato compartido, docs/GUIA_EQUIPO.md).
 export function crearApiPlataforma(http) {
   return {
-    config: () => http.get('/auth/config'),
-    devLogin: (rol, usuario) => http.post('/auth/dev-login', { rol, usuario }),
+    login: (usuario, contrasena) => http.post('/auth/login', { usuario, contrasena }),
     // Lo atiende el módulo de la institución del token: identidad, rol, institución y permisos.
     sesion: () => http.get('/api/sesion')
   };

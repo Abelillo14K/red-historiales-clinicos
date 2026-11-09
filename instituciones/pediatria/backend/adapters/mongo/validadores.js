@@ -126,6 +126,14 @@ const vacunas = {
   properties: { id_vacuna: id, nombre: texto(), descripcion: textoOpc() }
 };
 
+const usuarios = {
+  bsonType: 'object', required: ['usuario', 'nombre', 'rol', 'contrasena_hash', 'activo', 'fecha_registro'],
+  properties: {
+    usuario: { bsonType: 'string', pattern: '^[A-Za-z0-9._-]{1,80}$' }, nombre: texto(),
+    rol: { enum: ['medico', 'secretaria', 'administrador'] }, contrasena_hash: texto(), activo: { bsonType: 'bool' }, fecha_registro: fecha
+  }
+};
+
 const bitacora_acceso = evento;
 
-module.exports = { VALIDADORES: { pacientes, medicos, vacunas, bitacora_acceso } };
+module.exports = { VALIDADORES: { pacientes, medicos, vacunas, usuarios, bitacora_acceso } };

@@ -10,9 +10,15 @@ const jwt = require('jsonwebtoken');
 const { crearApp } = require('../backend/app');
 const { crearServicios } = require('../backend/application');
 const { crearRepositoriosMemoria } = require('./doubles/memoria');
+const { cifrarContrasenaSincrona } = require('../backend/contrasenas');
+
+const CONTRASENA_PRUEBA = 'contrasena-solo-para-pruebas';
+const HUELLA_PRUEBA = cifrarContrasenaSincrona(CONTRASENA_PRUEBA);
+const cuenta = (usuario, rol, activo = true) => ({ usuario, nombre: 'Cuenta ficticia', rol, contrasena_hash: HUELLA_PRUEBA, activo, fecha_registro: new Date('2026-01-01T00:00:00Z') });
 
 // Datos completamente ficticios.
 const fixtures = () => ({
+  usuarios: [cuenta('usr-medico', 'medico'), cuenta('usr-secretaria', 'secretaria'), cuenta('usr-administrador', 'administrador'), cuenta('usr-inactivo', 'medico', false)],
   medicos: [
     { id_medico: 'M001', colegiado: 'COL-T1', nombres: 'Médica', apellidos: 'Prueba', especialidad: { id_especialidad: 'E001', nombre: 'Pediatría General' } },
     { id_medico: 'M002', colegiado: 'COL-T2', nombres: 'Médico', apellidos: 'Prueba', especialidad: { id_especialidad: 'E002', nombre: 'Neonatología' } }
@@ -62,4 +68,4 @@ async function iniciar(opciones = {}) {
   return { repos, base, api, cerrar: () => new Promise(r => server.close(r)) };
 }
 
-module.exports = { iniciar, token, fixtures };
+module.exports = { iniciar, token, fixtures, CONTRASENA_PRUEBA };

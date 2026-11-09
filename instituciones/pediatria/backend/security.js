@@ -55,13 +55,12 @@ function crearRoles(onDenegado) {
 }
 const roles = crearRoles();
 
-// Solo desarrollo: lo usan scripts/dev-token.js y POST /auth/dev-login.
-function firmarTokenDesarrollo({ usuario, rol }, expiresIn = '2h') {
-  if (process.env.NODE_ENV === 'production') throw new Error('No usar tokens de desarrollo en producción');
+// Emite la sesión de una cuenta ya autenticada con su contraseña.
+function firmarToken({ usuario, rol }, expiresIn = '8h') {
   if (!secretoValido()) throw new Error('Configura JWT_SECRET >= 32 caracteres');
   if (!ROLES.includes(rol)) throw new Error('Rol inválido');
   return jwt.sign({ rol, institucion: INSTITUCION }, process.env.JWT_SECRET,
     { algorithm: 'HS256', subject: usuario, expiresIn, ...opcionesJwt() });
 }
 
-module.exports = { autenticarPeticion, requireAuth, roles, crearRoles, firmarTokenDesarrollo, verificarToken, ROLES, INSTITUCION, secretoValido };
+module.exports = { autenticarPeticion, requireAuth, roles, crearRoles, firmarToken, verificarToken, ROLES, INSTITUCION, secretoValido };

@@ -7,6 +7,7 @@ const { crearPacientesService } = require('./pacientesService');
 const { crearConsultasService } = require('./consultasService');
 const { crearCrecimientoService } = require('./crecimientoService');
 const { crearVacunacionService } = require('./vacunacionService');
+const { crearAutenticacionService } = require('./autenticacionService');
 
 function crearCatalogosService({ medicos, vacunas, unidad }) {
   // Alta y evento en la misma unidad de trabajo: con replica set se confirman o
@@ -50,6 +51,7 @@ function crearServicios(repos) {
   const vacunacion = crearVacunacionService(repos, comun);
   return {
     comun,
+    autenticacion: crearAutenticacionService(repos, comun),
     pacientes: crearPacientesService(repos, comun),
     consultas: crearConsultasService(repos, comun),
     crecimiento: crearCrecimientoService(repos, comun),

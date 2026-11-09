@@ -12,6 +12,7 @@ const notFound = msg => new DomainError(msg, 404, 'NO_ENCONTRADO');
 const conflict = msg => new DomainError(msg, 409, 'CONFLICTO');
 const invalid = msg => new DomainError(msg, 400, 'REGLA_NEGOCIO');
 const badReference = msg => new DomainError(msg, 422, 'REFERENCIA_INVALIDA');
+const unauthorized = msg => new DomainError(msg, 401, 'CREDENCIALES_INVALIDAS');
 const forbidden = msg => new DomainError(msg, 403, 'PROHIBIDO');
 
-module.exports = { DomainError, notFound, conflict, invalid, badReference, forbidden };
+module.exports = { DomainError, notFound, conflict, invalid, badReference, forbidden, unauthorized };

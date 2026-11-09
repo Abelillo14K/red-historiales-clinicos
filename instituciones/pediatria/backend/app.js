@@ -5,21 +5,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
 const S = require('./schema');
-const { requireAuth, crearRoles, firmarTokenDesarrollo, INSTITUCION } = require('./security');
+const { requireAuth, crearRoles, firmarToken, INSTITUCION } = require('./security');
 const M = require('./api/middleware');
 const { rutasPacientes } = require('./api/routes/pacientes');
 const { rutasGenerales } = require('./api/routes/generales');
 const { crearEnrutadorInstituciones } = require('./api/enrutadorInstituciones');
-
-function devLoginHabilitado() {
-  return ['development', 'test'].includes(process.env.NODE_ENV) && process.env.ENABLE_DEV_LOGIN !== 'false';
-}
-
-// El token de desarrollo (incluso de administrador) solo se entrega al propio equipo.
-// Con 'trust proxy' = loopback, req.ip es la IP real del cliente aunque llegue por un
-// proxy local, y X-Forwarded-For enviado desde otro equipo se ignora.
-const IP_LOCAL = /^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|::ffff:127\.\d{1,3}\.\d{1,3}\.\d{1,3})$/;
-const esPeticionLocal = req => IP_LOCAL.test(req.ip || '');
 
 // Router montable en la aplicación compartida de las cuatro instituciones.
 function crearRouterPediatria(servicios) {
@@ -48,16 +38,9 @@ function crearApp(servicios, { frontendDist = path.join(__dirname, '..', '..', '
 
   app.get('/salud', (_req, res) => res.json({ servicio: 'centro-pediatrico', ok: true }));
 
-  app.get('/auth/config', (req, res) => res.json({ institucion: INSTITUCION, dev_login: devLoginHabilitado() && esPeticionLocal(req) }));
-  app.post('/auth/dev-login', M.limitador({ ventanaMs: 60_000, maximo: 20 }), M.asyncRoute(async (req, res) => {
-    if (!devLoginHabilitado()) return res.status(404).json({ error: 'Inicio de sesión de desarrollo deshabilitado', codigo: 'RUTA_NO_ENCONTRADA' });
-    if (!esPeticionLocal(req)) {
-      return res.status(403).json({ error: 'El inicio de sesión de desarrollo solo está disponible desde el propio equipo', codigo: 'DEV_LOGIN_SOLO_LOCAL' });
-    }
-    const datos = S.devLogin.parse(req.body);
-    const token = firmarTokenDesarrollo(datos, '8h');
-    await servicios.comun.auditar({ id: datos.usuario, rol: datos.rol }, 'INICIO_SESION_DESARROLLO', { recurso: 'auth' });
-    res.json({ token, usuario: datos.usuario, rol: datos.rol, advertencia: 'Token de desarrollo; no usar en producción' });
+  app.post('/auth/login', M.limitador({ ventanaMs: 60_000, maximo: 20 }), M.asyncRoute(async (req, res) => {
+    const cuenta = await servicios.autenticacion.iniciarSesion(S.login.parse(req.body));
+    res.json({ token: firmarToken(cuenta), usuario: cuenta.usuario, rol: cuenta.rol });
   }));
 
   // La institución del token decide el módulo y, con él, el motor de base de datos.
@@ -75,4 +58,4 @@ function crearApp(servicios, { frontendDist = path.join(__dirname, '..', '..', '
   return app;
 }
 
-module.exports = { crearApp, crearRouterPediatria, crearEnrutadorInstituciones, devLoginHabilitado, esPeticionLocal };
+module.exports = { crearApp, crearRouterPediatria, crearEnrutadorInstituciones };
