@@ -18,6 +18,7 @@ La clínica trabaja con **expedientes que se leen completos**: datos del pacient
 | `documentos_paciente/{documento}` | `id_paciente`: guarda de unicidad del documento de identidad | documento sin espacios |
 | `contadores/pacientes` | `valor`: último número de expediente | fijo |
 | `bitacora/{auto}` | Usuario, rol, acción, paciente, recurso, resultado, detalle, fecha | automático |
+| `cuentas_acceso/{usuario}` | Rol, hash scrypt de la contraseña, activo, fechas | usuario (el id evita duplicados) |
 
 El odontograma es un **mapa** `piezas` dentro del paciente, con numeración FDI como clave (`piezas.46 = { estado, observaciones, ultimo_tratamiento, actualizado, actualizado_por }`). Cada pieza se actualiza por ruta de campo (`update({'piezas.46.estado': …})`) sin reescribir las demás.
 
@@ -63,6 +64,7 @@ Limitación aceptada: listados y búsquedas leen hasta 1 000 documentos y pagina
 
 - **Solo el servidor accede a Firestore**, con la cuenta de servicio (Admin SDK). Las reglas de seguridad quedan cerradas (modo de producción), así que ningún navegador puede leer ni escribir directo.
 - **La llave nunca está en el repositorio**: `.env` guarda solo su ruta, y `.gitignore` excluye `.env` y `credentials*.json`.
+- **Cuentas**: usuario y contraseña por rol; la contraseña se guarda solo como hash scrypt con sal propia y se compara en tiempo constante. El error no distingue usuario inexistente de contraseña incorrecta, y cada intento queda en la bitácora.
 - **Autenticación**: JWT común HS256 con issuer, audience y expiración; solo se aceptan tokens de `clinica_odontologica` con un rol de la clínica.
 - **Autorización por permiso** en cada ruta, con la misma tabla que recibe la interfaz. Recepción no ve antecedentes, odontograma ni consultas, y solo el administrador consulta historiales archivados.
 - **Bitácora**: las lecturas de pacientes se entregan solo después de registrarse (si falla: `503`). Las escrituras registran su evento en la misma transacción, y los accesos denegados también quedan.
