@@ -5,7 +5,7 @@ Proyecto final de Bases de Datos II (Universidad Rafael Landívar): una platafor
 | Institución | Carpeta | Responsable | Estado |
 |---|---|---|---|
 | Centro Médico Pediátrico | [`instituciones/pediatria/`](instituciones/pediatria/README.md) | Abel | **Implementado** con MongoDB: backend, interfaz, pruebas y documentación |
-| Hospital General | [`instituciones/hospital/`](instituciones/hospital/README.md) | Ely | Interfaz en vista previa; backend pendiente (MySQL) |
+| Hospital General | [`instituciones/hospital/`](instituciones/hospital/README.md) | Ely | Implementado (MySQL) |
 | Clínica Odontológica | [`instituciones/odontologia/`](instituciones/odontologia/README.md) | Eddy | **Implementado** con Cloud Firestore: backend, interfaz, pruebas y documentación |
 | Laboratorio Clínico | [`instituciones/laboratorio/`](instituciones/laboratorio/README.md) | Eddy | **Implementado** con PostgreSQL: backend, interfaz, pruebas y documentación |
 
@@ -91,9 +91,9 @@ Se entra con **usuario y contraseña**. Las cuentas iniciales (una por rol) se c
 ## Pruebas
 
 ```powershell
-npm test                      # 238 pruebas: plataforma (33) + Pediatría (119) + Laboratorio (47) + Odontología (39)
+npm test                      # plataforma (33) + Pediatría (119) + Laboratorio (58) + Odontología (31, más las del emulador si hay Java 21+)
 npm run test:e2e              # Pediatría en Edge/Chrome con MongoDB desechable (27 pasos)
-npm run test:e2e:vista-previa # vista previa de las instituciones pendientes (9 pasos)
+npm run test:e2e:vista-previa # vista previa de desarrollo (7 pasos)
 npm run test:todo             # todo lo anterior
 ```
 
@@ -109,6 +109,8 @@ npm run test:todo             # todo lo anterior
 | `npm run db:crear-accesos` | Crea las cuentas iniciales y `CREDENCIALES_ACCESO.txt` (no modifica cuentas existentes) |
 | `npm run lab:esquema` · `npm run lab:token -- <rol> <usuario>` · `npm run test:laboratorio` | Laboratorio: aplicar el esquema, JWT de desarrollo y pruebas |
 | `npm run odonto:token -- <rol> <usuario>` · `npm run odonto:emulador` · `npm run test:odontologia` | Odontología: JWT de desarrollo, descargar el emulador y pruebas |
+| `npm run lab:usuarios` · `npm run odonto:usuarios` | Crean las cuentas `lab.*` y `odonto.*` |
+| `npm run hospital:install` · `npm run hospital:usuario -- hosp.<nombre> <contraseña> <rol>` | Hospital: instala sus dependencias y crea una cuenta `hosp.*` |
 | `npm run web:install` | Agrega o actualiza dependencias de la aplicación web |
 
 ## Trabajo en equipo y seguridad

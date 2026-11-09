@@ -5,6 +5,7 @@ const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { iniciarFirestoreTemporal, motivoOmision } = require('./soporte/firestoreTemporal');
 const { pruebasFlujo, REC, OD, paciente, consulta } = require('./soporte/flujoComun');
+const { pruebasAcceso } = require('./soporte/flujoAcceso');
 const { sembrarCatalogo, iniciar, enDias } = require('./helpers');
 
 const omitir = motivoOmision();
@@ -27,6 +28,7 @@ describe('Firestore (emulador)', { skip: omitir }, () => {
   const nuevos = async () => { await emu.vaciar(); return crearRepositoriosFirestore(db); };
 
   pruebasFlujo('Firestore', nuevos);
+  pruebasAcceso('Firestore', nuevos);
 
   test('las fechas vuelven como Date y el odontograma se actualiza por ruta de campo', async () => {
     const s = crearServicios(await nuevos());

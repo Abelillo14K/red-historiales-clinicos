@@ -96,7 +96,7 @@ async function iniciarPostgresTemporal() {
 async function vaciar(pool) {
   await pool.query(`TRUNCATE laboratorio.resultado_detalle, laboratorio.resultado, laboratorio.examen, laboratorio.solicitud,
     laboratorio.tipo_examen_parametro, laboratorio.tipo_examen, laboratorio.parametro, laboratorio.tipo_muestra,
-    laboratorio.medico_solicitante, laboratorio.personal_laboratorio, laboratorio.paciente, laboratorio.bitacora RESTART IDENTITY`);
+    laboratorio.medico_solicitante, laboratorio.personal_laboratorio, laboratorio.paciente, laboratorio.cuenta_acceso, laboratorio.bitacora RESTART IDENTITY`);
 }
 
 module.exports = { iniciarPostgresTemporal, binariosPostgres, vaciar };

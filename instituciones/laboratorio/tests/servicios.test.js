@@ -5,8 +5,10 @@ const assert = require('node:assert/strict');
 const { crearRepositoriosMemoria } = require('./doubles/memoria');
 const { crearServicios } = require('../backend/application');
 const { pruebasFlujo, REC, paciente } = require('./soporte/flujoComun');
+const { pruebasAcceso } = require('./soporte/flujoAcceso');
 
 pruebasFlujo('Memoria', async () => crearRepositoriosMemoria());
+pruebasAcceso('Memoria', async () => crearRepositoriosMemoria());
 
 test('Memoria: si la bitácora falla, la escritura se revierte y la lectura no se entrega', async () => {
   const repos = crearRepositoriosMemoria();

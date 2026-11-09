@@ -46,13 +46,18 @@ function crearRoles(onDenegado) {
   };
 }
 
-// Solo desarrollo: lo usa scripts/dev-token.js.
-function firmarTokenDesarrollo({ usuario, rol }, expiresIn = '8h') {
-  if (process.env.NODE_ENV === 'production') throw new Error('No usar tokens de desarrollo en producción');
+// Token de sesión común para una cuenta ya autenticada con usuario y contraseña.
+function firmarTokenSesion({ usuario, rol }, expiresIn = '8h') {
   if (!secretoValido()) throw new Error('Configura JWT_SECRET >= 32 caracteres');
   if (!ROLES.includes(rol)) throw new Error(`Rol inválido; use uno de: ${ROLES.join(', ')}`);
   return jwt.sign({ rol, institucion: INSTITUCION }, process.env.JWT_SECRET,
     { algorithm: 'HS256', subject: usuario, expiresIn, ...opcionesJwt() });
 }
 
-module.exports = { INSTITUCION, requireAuth, crearRoles, firmarTokenDesarrollo, verificarToken, secretoValido };
+// Solo desarrollo: lo usa scripts/dev-token.js.
+function firmarTokenDesarrollo(datos, expiresIn = '8h') {
+  if (process.env.NODE_ENV === 'production') throw new Error('No usar tokens de desarrollo en producción');
+  return firmarTokenSesion(datos, expiresIn);
+}
+
+module.exports = { INSTITUCION, requireAuth, crearRoles, firmarTokenSesion, firmarTokenDesarrollo, verificarToken, secretoValido };

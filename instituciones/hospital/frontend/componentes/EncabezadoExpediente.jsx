@@ -1,35 +1,38 @@
-import { Icon, StatusBadge } from '@plataforma/ui/index.js';
-import { Link } from 'react-router-dom';
-import { useModulo } from '@plataforma/modulos/ModuloContext.jsx';
+import { StatusBadge } from '@plataforma/ui/index.js';
+import { edad, fecha, fechaHora } from '@plataforma/formato.js';
 
-// Datos clave que el expediente del Hospital mostrará bajo el nombre del paciente.
-// Sin backend se presentan vacíos; al conectar, reemplazar «—» por los datos reales.
-const DATOS_CLAVE = ['Edad y sexo', 'Tipo de sangre', 'Alergias', 'Próxima cita'];
+export default function EncabezadoExpediente({ datos, acciones }) {
+  const p = datos.paciente;
+  const alergias = datos.alergias || [];
+  const proxima = datos.proxima_cita;
 
-// Encabezado del expediente (mismo patrón visual que Pediatría: .patient-header).
-// Las acciones se muestran deshabilitadas: no existe una operación que ejecutar.
-export default function EncabezadoExpediente({ id, vistaPrevia }) {
-  const { enlace } = useModulo();
   return (
     <section className="card patient-header" aria-labelledby="titulo-expediente">
       <div className="patient-main">
         <div className="patient-id">
-          <div className="avatar" aria-hidden="true"><Icon name="usuario" size={24} /></div>
+          <div className="avatar" aria-hidden="true">{p.primer_nombre?.[0]}{p.primer_apellido?.[0]}</div>
           <div>
-            <h1 id="titulo-expediente">{vistaPrevia ? 'Expediente clínico' : `Expediente ${id}`}</h1>
+            <h1 id="titulo-expediente">{p.primer_nombre} {p.segundo_nombre} {p.primer_apellido} {p.segundo_apellido}</h1>
             <div className="page-meta">
-              {vistaPrevia ? <span>Estructura sin paciente</span> : <code>{id}</code>}
-              <StatusBadge tono="info">Pendiente de integración</StatusBadge>
+              <code>{p.numero_expediente}</code>
+              <span>{p.genero}</span>
+              <span aria-hidden="true">·</span>
+              <span>{edad(p.fecha_nacimiento)}</span>
+              <span aria-hidden="true">·</span>
+              <span>Nacimiento {fecha(p.fecha_nacimiento)}</span>
+              <StatusBadge>{p.estado}</StatusBadge>
             </div>
           </div>
         </div>
-        <div className="actions">
-          <Link className="btn" to={enlace(`/pacientes/${encodeURIComponent(id)}/archivar`)}>Ver diseño de archivado</Link>
-          <Link className="btn btn-primary" to={enlace(`/pacientes/${encodeURIComponent(id)}/consultas/nueva`)}><Icon name="mas" size={16} />Ver diseño de consulta</Link>
-        </div>
+        {acciones && <div className="actions">{acciones}</div>}
       </div>
       <dl className="patient-facts">
-        {DATOS_CLAVE.map(d => <div key={d}><dt>{d}</dt><dd>—<small>Sin datos</small></dd></div>)}
+        <div><dt>Edad y sexo</dt><dd>{edad(p.fecha_nacimiento)}<small>{p.genero}</small></dd></div>
+        <div><dt>Tipo de sangre</dt><dd>{p.tipo_sangre || 'No indicado'}</dd></div>
+        <div><dt>Alergias</dt><dd>{alergias.length
+          ? <>{alergias.map(a => a.nombre_alergia).join(', ')}<small>{alergias.length === 1 ? '1 alergia registrada' : `${alergias.length} alergias registradas`}</small></>
+          : 'Sin alergias registradas'}</dd></div>
+        <div><dt>Próxima cita</dt><dd>{proxima ? <>{fechaHora(proxima.fecha_hora_cita)}<small>Cita {proxima.id_cita}</small></> : 'Sin cita programada'}</dd></div>
       </dl>
     </section>
   );
