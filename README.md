@@ -107,8 +107,8 @@ npm run test:todo             # todo lo anterior
 | `npm run build` · `npm run web:dev` | Compila la aplicación web · servidor de desarrollo en el puerto 5173 |
 | `npm run db:indices` · `db:validadores` · `db:diagnostico` · `db:respaldo` · `db:restaurar-aislado` | Operación de MongoDB de Pediatría |
 | `npm run db:crear-accesos` | Crea las cuentas iniciales y `CREDENCIALES_ACCESO.txt` (no modifica cuentas existentes) |
-| `npm run lab:esquema` · `npm run lab:token -- <rol> <usuario>` · `npm run test:laboratorio` | Laboratorio: aplicar el esquema, JWT de desarrollo y pruebas |
-| `npm run odonto:token -- <rol> <usuario>` · `npm run odonto:emulador` · `npm run test:odontologia` | Odontología: JWT de desarrollo, descargar el emulador y pruebas |
+| `npm run lab:esquema` · `npm run test:laboratorio` | Laboratorio: aplicar el esquema y pruebas |
+| `npm run odonto:emulador` · `npm run test:odontologia` | Odontología: descargar el emulador y pruebas |
 | `npm run lab:usuarios` · `npm run odonto:usuarios` | Crean las cuentas `lab.*` y `odonto.*` |
 | `npm run hospital:install` · `npm run hospital:usuario -- hosp.<nombre> <contraseña> <rol>` | Hospital: instala sus dependencias y crea una cuenta `hosp.*` |
 | `npm run web:install` | Agrega o actualiza dependencias de la aplicación web |

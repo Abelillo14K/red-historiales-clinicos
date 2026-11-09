@@ -123,7 +123,7 @@ async function main() {
     let tokenOriginal;
     await paso('Sesión real de Pediatría y enlace de desarrollo a la vista previa', async () => {
       await page.goto(`${base}/login`);
-      await page.getByRole('link', { name: 'Vista previa de los módulos pendientes' }).waitFor();
+      await page.getByRole('link', { name: 'Estado de integración de los módulos' }).waitFor();
       await page.getByLabel('Usuario').fill('usr-administrador');
       await page.getByLabel('Contraseña').fill(CONTRASENA_PRUEBA);
       await page.getByRole('button', { name: 'Iniciar sesión' }).click();

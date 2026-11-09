@@ -24,7 +24,7 @@ instituciones/odontologia/
     index.js                composición: conexión → adaptador → casos de uso → router
     db.js security.js permisos.js schema.js
   frontend/                 módulo React (manifiesto, api.js, páginas, odontograma)
-  scripts/dev-token.js      npm run odonto:token
+  scripts/usuarios.js       npm run odonto:usuarios
   tests/                    dominio, servicios, API, permisos e integración con el emulador de Firestore
   docs/                     modelo documental, consistencia, seguridad y justificación del motor
 ```
@@ -59,14 +59,6 @@ npm run odonto:usuarios   # crea odonto.admin, odonto.recepcion y odonto.odontol
 Las contraseñas aparecen una sola vez y se agregan a `DATOS_DE_ACCESO_ODONTOLOGIA.txt`, **fuera del repositorio** (carpeta que contiene el proyecto). Volver a ejecutarlo no cambia las cuentas existentes; `npm run odonto:usuarios -- --restablecer` genera contraseñas nuevas. Cada inicio de sesión, correcto o fallido, queda en la bitácora.
 
 Se entra por el formulario común de la pantalla de acceso: `POST /auth/login` reconoce el prefijo `odonto.` y valida la cuenta con `autenticar(usuario, contraseña)` del módulo, que devuelve el JWT de `clinica_odontologica`.
-
-## Token de desarrollo (solo pruebas)
-
-```powershell
-npm run odonto:token -- odontologo EDDY-OD     # roles: recepcion, odontologo, administrador
-```
-
-Abra `http://localhost:3001/#access_token=<JWT>`. El token dura 8 horas y solo vale con el `JWT_SECRET` de ese `.env`.
 
 ## Roles y permisos
 

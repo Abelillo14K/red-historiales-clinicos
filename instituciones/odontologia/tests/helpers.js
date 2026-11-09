@@ -10,11 +10,11 @@ const express = require('express');
 const { crearEnrutadorInstituciones } = require('../../pediatria/backend/api/enrutadorInstituciones');
 const { crearRouterOdontologia } = require('../backend/app');
 const { crearServicios } = require('../backend/application');
-const { firmarTokenDesarrollo } = require('../backend/security');
+const { firmarTokenSesion } = require('../backend/security');
 const { crearRepositoriosMemoria } = require('./doubles/memoria');
 
 const ADMIN = { id: 'ADM-1', rol: 'administrador' };
-const token = (rol, usuario = `${rol.toUpperCase()}-1`) => firmarTokenDesarrollo({ usuario, rol });
+const token = (rol, usuario = `${rol.toUpperCase()}-1`) => firmarTokenSesion({ usuario, rol });
 // Fecha futura redondeada a la hora (para citas).
 const enDias = (dias, hora = 15) => { const d = new Date(Date.now() + dias * 864e5); d.setUTCHours(hora, 0, 0, 0); return d; };
 
