@@ -35,7 +35,8 @@ const puertoLibre = () => new Promise((resolve, reject) => {
   });
 });
 
-async function iniciarMysqlTemporal() {
+// vacio: true deja el servidor sin esquema ni usuario de aplicación (para probar los comandos).
+async function iniciarMysqlTemporal({ vacio = false } = {}) {
   const bin = binariosMysql();
   if (!bin) throw new Error('No se encontró MySQL Server (configure MYSQL_BIN)');
   const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'hospital-mysql-'));
@@ -78,6 +79,7 @@ async function iniciarMysqlTemporal() {
 
   try {
     if (!listo) throw new Error('mysqld no arrancó a tiempo');
+    if (vacio) return { port, sql, apagar, detener };
     sql(fs.readFileSync(path.join(SQL, '01_esquema.sql'), 'utf8'));
     sql(fs.readFileSync(path.join(SQL, '02_datos_base.sql'), 'utf8'));
     // Mismos permisos que el usuario de aplicación descrito en 01_esquema.sql.

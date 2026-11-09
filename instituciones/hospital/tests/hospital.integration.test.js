@@ -28,7 +28,7 @@ const paciente = (documento, extra = {}) => ({
 describe('Hospital General sobre MySQL', { skip: omitir }, () => {
   let mysql, modulo, server, base, PERMISOS;
   const T = {};
-  let idPaciente, idCita;
+  let idPaciente, idOtroPaciente, idCita;
   const uno = sql => mysql.sql(`USE historial_clinico; ${sql}`);
   const api = async (metodo, ruta, { token, body } = {}) => {
     const res = await fetch(base + ruta, {
@@ -134,6 +134,7 @@ describe('Hospital General sobre MySQL', { skip: omitir }, () => {
   test('recepción no recibe las alergias del expediente; el médico sí', async () => {
     const r = await api('POST', '/api/pacientes', { token: T.admin, body: paciente('1000000000105', { alergias: [{ id_alergia: 1, severidad: 'Severa' }] }) });
     assert.equal(r.status, 201);
+    idOtroPaciente = r.datos.id_paciente;
     const recepcion = await api('GET', `/api/pacientes/${r.datos.id_paciente}`, { token: T.recepcion });
     assert.equal(recepcion.status, 200);
     assert.equal(recepcion.datos.alergias, undefined);
@@ -177,6 +178,15 @@ describe('Hospital General sobre MySQL', { skip: omitir }, () => {
     assert.match(choque.datos.error, /ya tiene una cita/);
     assert.equal((await api('POST', '/api/citas', { token: T.recepcion, body: { ...cita, fecha_hora: '2020-01-01T09:00' } })).status, 400);
     assert.equal((await api('POST', '/api/citas', { token: T.enfermeria, body: cita })).status, 403);
+  });
+
+  test('reprogramar rechaza fechas pasadas y dos solicitudes simultáneas a la misma hora', async () => {
+    const crear = fecha_hora => api('POST', '/api/citas', { token: T.recepcion, body: { id_paciente: idOtroPaciente, id_medico: 1, fecha_hora } });
+    const [a, b] = [await crear(`${ANIO}-04-01T09:00`), await crear(`${ANIO}-04-01T10:00`)];
+    const mover = (id, fecha_hora) => api('PATCH', `/api/citas/${id}`, { token: T.recepcion, body: { fecha_hora } });
+    assert.equal((await mover(a.datos.id_cita, '2020-01-01T09:00')).status, 400);
+    const estados = (await Promise.all([mover(a.datos.id_cita, `${ANIO}-05-01T08:00`), mover(b.datos.id_cita, `${ANIO}-05-01T08:00`)])).map(r => r.status).sort();
+    assert.deepEqual(estados, [200, 409]);
   });
 
   test('la hospitalización ocupa y libera la cama, y bloquea el archivado mientras dure', async () => {

@@ -68,6 +68,9 @@ citasRouter.patch('/citas/:id', permiso('hospital.citas.gestionar'), ah(async (r
     const sets = [], vals = [];
     if (d.fecha_hora) {
       const fh = fechaHora(d.fecha_hora);
+      if (new Date(fh.replace(' ', 'T')) < new Date()) throw new ApiError(400, 'VALIDACION', 'La cita debe ser en una fecha futura');
+      // Igual que al crear: la fila del médico serializa las reservas de su agenda.
+      await q('SELECT id_medico FROM medico WHERE id_medico = ? FOR UPDATE', [ci.id_medico], c);
       if (await hayChoque(ci.id_medico, fh, id, c)) throw new ApiError(409, 'MEDICO_OCUPADO', 'El médico ya tiene una cita a esa hora');
       sets.push('fecha_hora_cita = ?'); vals.push(fh);
     }
