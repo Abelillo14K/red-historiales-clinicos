@@ -18,7 +18,7 @@ function aplicarCambios(objeto, cambios) {
 }
 
 function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
-  let db = { contador: 0, auto: 0, pacientes: {}, documentos: {}, consultas: {}, citas: {}, odontologos: {}, procedimientos: {}, bitacora: [] };
+  let db = { contador: 0, auto: 0, pacientes: {}, documentos: {}, consultas: {}, citas: {}, odontologos: {}, procedimientos: {}, cuentas: {}, bitacora: [] };
   const autoId = () => `AUTO${String(++db.auto).padStart(6, '0')}`;
 
   function repos(pendientes) {
@@ -112,6 +112,12 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
       async crearProcedimiento(d) { crearEn('procedimientos', d.id_procedimiento, d, 'Ya existe un procedimiento con ese código'); }
     };
 
+    const cuentas = {
+      async obtener(u) { return copia(db.cuentas[u] || null); },
+      async crear(c) { crearEn('cuentas', c.usuario, c, 'Ya existe una cuenta con ese usuario'); },
+      async actualizarContrasena(u, hash) { escribir(() => aplicarCambios(db.cuentas[u], { hash_contrasena: hash, actualizado: new Date() })); }
+    };
+
     const auditoria = {
       async registrar(e) {
         if (fallarAuditoria) throw new Error('bitácora no disponible');
@@ -125,7 +131,7 @@ function crearRepositoriosMemoria({ fallarAuditoria = false } = {}) {
       }
     };
 
-    return { pacientes, consultas, citas, catalogos, auditoria };
+    return { pacientes, consultas, citas, catalogos, cuentas, auditoria };
   }
 
   const unidad = {

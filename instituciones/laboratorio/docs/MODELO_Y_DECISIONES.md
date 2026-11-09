@@ -24,6 +24,7 @@ PostgreSQL ofrece justo eso: integridad referencial declarada, restricciones `CH
 | `resultado` | Resultado del examen (1 a 1) | `id_examen` UNIQUE; FK `id_personal_valida` |
 | `resultado_detalle` | Valor de cada parámetro | PK (`id_resultado`, `id_parametro`) |
 | `bitacora` | Accesos y cambios (solo se agrega) | Sin FK: conserva el evento aunque el registro cambie |
+| `cuenta_acceso` | Inicio de sesión: usuario, rol, hash scrypt de la contraseña | `usuario` PK; CHECK de formato, rol y hash |
 
 Normalización: los nombres de examen, parámetro, unidad y rangos viven solo en los catálogos; `resultado_detalle` guarda solo el valor y la marca `fuera_de_rango` calculada al registrar (la referencia puede cambiar después sin alterar resultados ya emitidos). El estado de la solicitud se deriva del de sus exámenes en la capa de dominio.
 
@@ -63,6 +64,7 @@ Más los índices implícitos de cada PK y UNIQUE.
 - **Mínimo privilegio:** la aplicación se conecta como `app_laboratorio` (`SELECT, INSERT, UPDATE`; sin `DELETE`, `TRUNCATE` ni DDL; sin `UPDATE` sobre la bitácora). El esquema se aplica con un usuario administrador.
 - **Sin credenciales en el repositorio:** el esquema no crea usuarios ni contraseñas; `LABORATORIO_DB_URL` vive en `.env`, que no se sube.
 - **SQL parametrizado** en todas las consultas; las búsquedas escapan `%` y `_`.
+- **Cuentas:** usuario y contraseña por rol; la contraseña se guarda solo como hash scrypt con sal propia y se compara en tiempo constante. El error no distingue usuario inexistente de contraseña incorrecta, y cada intento queda en la bitácora.
 - **Autenticación:** JWT común HS256 con issuer, audience y expiración; solo se aceptan tokens de `laboratorio_clinico` con un rol del laboratorio.
 - **Autorización por permiso** en cada ruta, con la misma tabla que recibe la interfaz. Recepción no ve valores de resultados y solo el administrador consulta historiales archivados.
 - **Bitácora:** toda lectura de datos de pacientes se entrega solo después de quedar registrada (si la bitácora falla: `503`). Las escrituras se registran en la misma transacción, los accesos denegados también, y la validación la registra un trigger del propio motor.

@@ -48,15 +48,26 @@ Requisitos: lo del [README principal](../../README.md) más PostgreSQL 16 o supe
 
 Si la contraseña tiene `@ : / # %`, escríbala codificada en la URL (por ejemplo, `@` como `%40`).
 
-## Acceso de desarrollo
+## Cuentas de acceso (usuario y contraseña)
 
-El inicio de sesión común todavía no existe y el modo de desarrollo de la pantalla de acceso solo emite tokens de Pediatría. Para el laboratorio:
+Una cuenta por rol, guardada en `laboratorio.cuenta_acceso` (solo el hash scrypt, nunca la contraseña). Se crean una sola vez; reiniciar el servidor no las cambia.
+
+```powershell
+npm run lab:esquema       # con LABORATORIO_DB_URL de postgres: crea la tabla si falta
+npm run lab:usuarios      # crea lab.admin, lab.recepcion, lab.tecnico y lab.bioquimico
+```
+
+Las contraseñas aparecen una sola vez y se agregan a `DATOS_DE_ACCESO_LABORATORIO.txt`, **fuera del repositorio** (carpeta que contiene el proyecto). Volver a ejecutarlo no cambia las cuentas existentes; `npm run lab:usuarios -- --restablecer` genera contraseñas nuevas. Cada inicio de sesión, correcto o fallido, queda en la bitácora.
+
+Se entra por el formulario común de la pantalla de acceso: `POST /auth/login` reconoce el prefijo `lab.` y valida la cuenta con `autenticar(usuario, contraseña)` del módulo, que devuelve el JWT de `laboratorio_clinico`. Para que `lab.bioquimico` valide resultados, regístrelo como personal activo con ese mismo usuario (Catálogos → Personal del laboratorio).
+
+## Token de desarrollo (solo pruebas)
 
 ```powershell
 npm run lab:token -- administrador EDDY-ADMIN     # roles: recepcion, tecnico, bioquimico, administrador
 ```
 
-En la pantalla de acceso: «Usar un token institucional» → pegar → «Ingresar a Laboratorio Clínico». El token dura 8 horas y solo vale con el `JWT_SECRET` de ese `.env`. Para **validar resultados**, el usuario del token debe estar registrado como personal activo en Catálogos → Personal del laboratorio.
+Abra `http://localhost:3001/#access_token=<JWT>`. El token dura 8 horas y solo vale con el `JWT_SECRET` de ese `.env`.
 
 ## Roles y permisos
 
