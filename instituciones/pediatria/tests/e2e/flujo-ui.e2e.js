@@ -74,7 +74,7 @@ const tokenSesion = () => page.evaluate(() => sessionStorage.getItem('plataforma
 const desbordeHorizontal = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 // [nombre, estado] de cada tarjeta del portal.
 const tarjetasPortal = () => page.locator('.portal-card').evaluateAll(ts => ts.map(t => [t.querySelector('h2').textContent, t.querySelector('.badge').textContent]));
-const PORTAL_PRODUCCION = [['Centro Médico Pediátrico', 'Disponible'], ['Hospital General', 'Pendiente de integración'],
+const PORTAL_PRODUCCION = [['Centro Médico Pediátrico', 'Disponible'], ['Hospital General', 'Sin autorización'],
   ['Clínica Odontológica', 'Sin autorización'], ['Laboratorio Clínico', 'Sin autorización']];
 async function salir() {
   await page.getByRole('button', { name: /^Menú de usuario/ }).click();
@@ -192,11 +192,11 @@ async function main() {
         assert.deepEqual(await tarjetasPortal(), PORTAL_PRODUCCION);
         const bienvenida = await page.locator('.portal-welcome').textContent();
         assert.match(bienvenida, /E2E-SEC/); assert.match(bienvenida, /Secretaría/);
-        // Producción: las pendientes no ofrecen ningún enlace (ni «Ver diseño»).
-        for (const nombre of ['Hospital General']) {
+        // Producción: las instituciones de otra sesión no ofrecen ningún enlace (ni «Ver diseño»).
+        for (const nombre of ['Hospital General', 'Clínica Odontológica', 'Laboratorio Clínico']) {
           const tarjeta = page.locator('.portal-card').filter({ hasText: nombre });
           assert.equal(await tarjeta.locator('a, button').count(), 0, `${nombre}: sin acciones en producción`);
-          await tarjeta.getByText('Se habilitará cuando su servidor esté conectado.').waitFor();
+          await tarjeta.getByText('Su sesión no incluye esta institución.').waitFor();
         }
         assert.ok(!(await page.locator('body').innerText()).includes('Ver diseño'));
         await auditarAccesibilidad('Portal (claro)'); await auditarContraste('Portal (claro)');

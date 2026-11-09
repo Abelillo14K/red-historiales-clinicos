@@ -48,13 +48,25 @@ No hay que crear colecciones ni índices: se crean al guardar el primer document
 
 Las reglas de seguridad de Firestore quedan en «modo de producción» (todo cerrado): solo el servidor accede, con la cuenta de servicio. El navegador nunca se conecta a Firestore.
 
-## Acceso de desarrollo
+## Cuentas de acceso (usuario y contraseña)
+
+Una cuenta por rol en la colección `cuentas_acceso/{usuario}` (solo el hash scrypt, nunca la contraseña). Se crean una sola vez y, como Firestore está en la nube, son las mismas desde cualquier equipo que use la llave.
+
+```powershell
+npm run odonto:usuarios   # crea odonto.admin, odonto.recepcion y odonto.odontologo
+```
+
+Las contraseñas aparecen una sola vez y se agregan a `DATOS_DE_ACCESO_ODONTOLOGIA.txt`, **fuera del repositorio** (carpeta que contiene el proyecto). Volver a ejecutarlo no cambia las cuentas existentes; `npm run odonto:usuarios -- --restablecer` genera contraseñas nuevas. Cada inicio de sesión, correcto o fallido, queda en la bitácora.
+
+Se entra por el formulario común de la pantalla de acceso: `POST /auth/login` reconoce el prefijo `odonto.` y valida la cuenta con `autenticar(usuario, contraseña)` del módulo, que devuelve el JWT de `clinica_odontologica`.
+
+## Token de desarrollo (solo pruebas)
 
 ```powershell
 npm run odonto:token -- odontologo EDDY-OD     # roles: recepcion, odontologo, administrador
 ```
 
-En la pantalla de acceso: «Usar un token institucional» → pegar → «Ingresar a Clínica Odontológica». El token dura 8 horas y solo vale con el `JWT_SECRET` de ese `.env`.
+Abra `http://localhost:3001/#access_token=<JWT>`. El token dura 8 horas y solo vale con el `JWT_SECRET` de ese `.env`.
 
 ## Roles y permisos
 

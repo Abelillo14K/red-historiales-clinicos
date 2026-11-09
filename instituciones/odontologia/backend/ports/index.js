@@ -28,6 +28,11 @@ const PUERTOS = {
     'actualizar'          // (id, cambios) -> void
   ],
   CatalogoRepository: ['odontologos', 'obtenerOdontologo', 'crearOdontologo', 'procedimientos', 'obtenerProcedimiento', 'crearProcedimiento'],
+  CuentaRepository: [
+    'obtener',              // (usuario) -> {usuario, rol, hash_contrasena, activo}|null
+    'crear',                // ({usuario, rol, hash_contrasena, activo, creado}) -> void; repetido -> conflicto
+    'actualizarContrasena'  // (usuario, hash) -> void
+  ],
   AuditoriaRepository: ['registrar', 'listar'],
   // ejecutar(fn): fn(repos) con lecturas consistentes; si fn termina, todas sus escrituras se confirman juntas.
   UnidadDeTrabajo: ['ejecutar']
@@ -35,7 +40,7 @@ const PUERTOS = {
 
 const REPOSITORIOS = {
   pacientes: 'PacienteRepository', consultas: 'ConsultaRepository', citas: 'CitaRepository',
-  catalogos: 'CatalogoRepository', auditoria: 'AuditoriaRepository'
+  catalogos: 'CatalogoRepository', cuentas: 'CuentaRepository', auditoria: 'AuditoriaRepository'
 };
 
 function verificarPuerto(nombre, implementacion) {

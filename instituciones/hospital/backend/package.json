@@ -1,0 +1,21 @@
+{
+  "name": "hospital-backend",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Backend del Hospital General (MySQL + Express)",
+  "engines": { "node": ">=20.19" },
+  "scripts": {
+    "start": "node --env-file=.env src/index.js",
+    "dev": "node --env-file=.env --watch src/index.js",
+    "db:crear-usuario": "node --env-file=.env scripts/crear-usuario.js",
+    "token:dev": "node --env-file=.env scripts/token-dev.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.0",
+    "zod": "^3.23.8"
+  }
+}

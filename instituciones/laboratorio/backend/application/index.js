@@ -6,6 +6,7 @@ const { crearPacientesService } = require('./pacientesService');
 const { crearSolicitudesService } = require('./solicitudesService');
 const { crearResultadosService } = require('./resultadosService');
 const { crearCatalogosService } = require('./catalogosService');
+const { crearAccesoService } = require('./accesoService');
 
 function crearServicios(repos) {
   verificarRepositorios(repos);
@@ -16,6 +17,7 @@ function crearServicios(repos) {
     solicitudes: crearSolicitudesService(repos, comun),
     resultados: crearResultadosService(repos, comun),
     catalogos: crearCatalogosService(repos, comun),
+    acceso: crearAccesoService(repos, comun),
     auditoria: { listar: filtros => repos.auditoria.listar(filtros) },
     panel: {
       async resumen(actor) {

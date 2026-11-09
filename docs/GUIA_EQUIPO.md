@@ -23,7 +23,7 @@ Guía única para trabajar en el proyecto: estructura, responsables, contratos c
 | Institución | Carpeta | Identificador (claim `institucion`) | Motor | Responsable | Estado |
 |---|---|---|---|---|---|
 | Centro Médico Pediátrico | `instituciones/pediatria` | `centro_pediatrico` | MongoDB | Abel (propietario) | Implementado |
-| Hospital General | `instituciones/hospital` | `hospital_general` | MySQL | Ely | Frontend en vista previa; backend pendiente |
+| Hospital General | `instituciones/hospital` | `hospital_general` | MySQL | Ely | Implementado |
 | Clínica Odontológica | `instituciones/odontologia` | `clinica_odontologica` | Firebase (Cloud Firestore) | Eddy | Implementado |
 | Laboratorio Clínico | `instituciones/laboratorio` | `laboratorio_clinico` | PostgreSQL | Eddy | Implementado |
 
@@ -94,7 +94,8 @@ El token viaja en `Authorization: Bearer <JWT>`. El frontend lo guarda en `sessi
 
 - **Inicio de sesión común (pendiente del equipo):** debe redirigir a `https://<host>/#access_token=<JWT>`. La interfaz lee el fragmento, lo borra de la URL y llama a `/api/sesion`.
 - **Inicio de sesión actual:** `POST /auth/login` con `{ usuario, contrasena }`, contra la colección `usuarios` de la institución que atiende este backend. Devuelve el JWT de la sesión; el usuario nunca lo ve ni lo escribe.
-- **Laboratorio y Clínica Odontológica (temporal):** todavía no tienen inicio de sesión con contraseña. Se entra generando un JWT con `npm run lab:token -- <rol> <usuario>` o `npm run odonto:token -- <rol> <usuario>` y abriendo `http://localhost:3001/#access_token=<JWT>`.
+- **Laboratorio, Clínica Odontológica y Hospital General:** el mismo formulario. Las cuentas con prefijo `lab.`, `odonto.` u `hosp.` se validan en la base de su institución (PostgreSQL, Firestore o MySQL), que devuelve el JWT de esa institución. Cada módulo declara `prefijoUsuario` y `autenticar(usuario, contraseña)`. Las cuentas se crean con `npm run lab:usuarios` y `npm run odonto:usuarios`.
+- **Tokens de desarrollo (solo pruebas):** `npm run lab:token -- <rol> <usuario>` o `npm run odonto:token -- <rol> <usuario>` y abrir `http://localhost:3001/#access_token=<JWT>`.
 - **Varias instituciones por usuario (no implementado):** el backend tendría que informar las instituciones autorizadas y emitir un token por institución. El frontend solo cambiaría `sesionAutorizaA()` en `plataforma/portal/portal.js`.
 
 ## 4. Contrato HTTP y errores
