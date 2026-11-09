@@ -8,7 +8,6 @@ Alineado con `docs/GUIA_EQUIPO.md` (sesión §3, errores §4, permisos §9). Esq
 3. Ejecute `sql/01_esquema.sql` y `sql/02_datos_base.sql` (Workbench) y cree el usuario MySQL de la app.
 4. `npm run db:crear-usuario -- admin <contraseña-de-la-app> administrador`
 5. `npm run dev` → http://localhost:3002/salud
-6. `npm run token:dev -- admin` → imprime un JWT.
 
 ## En el servidor común (puerto 3001)
 1. En la raíz del repositorio: `npm run hospital:install`.

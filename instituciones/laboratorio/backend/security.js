@@ -54,10 +54,4 @@ function firmarTokenSesion({ usuario, rol }, expiresIn = '8h') {
     { algorithm: 'HS256', subject: usuario, expiresIn, ...opcionesJwt() });
 }
 
-// Solo desarrollo: lo usa scripts/dev-token.js.
-function firmarTokenDesarrollo(datos, expiresIn = '8h') {
-  if (process.env.NODE_ENV === 'production') throw new Error('No usar tokens de desarrollo en producción');
-  return firmarTokenSesion(datos, expiresIn);
-}
-
-module.exports = { INSTITUCION, requireAuth, crearRoles, firmarTokenSesion, firmarTokenDesarrollo, verificarToken, secretoValido };
+module.exports = { INSTITUCION, requireAuth, crearRoles, firmarTokenSesion, verificarToken, secretoValido };

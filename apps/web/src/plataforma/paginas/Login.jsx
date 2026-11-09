@@ -62,7 +62,7 @@ export default function Login() {
           {/* Solo en `vite` (desarrollo): la compilación de producción elimina este enlace y la vista previa. */}
           {import.meta.env.DEV && (
             <p className="meta login-preview">
-              <Icon name="ojo" size={15} /><Link to="/vista-previa">Vista previa de los módulos pendientes</Link><span>· solo desarrollo, sin sesión</span>
+              <Icon name="ojo" size={15} /><Link to="/vista-previa">Estado de integración de los módulos</Link><span>· solo desarrollo, sin sesión</span>
             </p>
           )}
           <p className="login-audit"><Icon name="auditoria" size={18} /><span>Acceso por rol y trazabilidad de las operaciones sobre los historiales clínicos.</span></p>

@@ -10,11 +10,11 @@ const express = require('express');
 const { crearEnrutadorInstituciones } = require('../../pediatria/backend/api/enrutadorInstituciones');
 const { crearRouterLaboratorio } = require('../backend/app');
 const { crearServicios } = require('../backend/application');
-const { firmarTokenDesarrollo } = require('../backend/security');
+const { firmarTokenSesion } = require('../backend/security');
 const { crearRepositoriosMemoria } = require('./doubles/memoria');
 
 const ADMIN = { id: 'ADM-1', rol: 'administrador' };
-const token = (rol, usuario = `${rol.toUpperCase()}-1`) => firmarTokenDesarrollo({ usuario, rol });
+const token = (rol, usuario = `${rol.toUpperCase()}-1`) => firmarTokenSesion({ usuario, rol });
 
 // Catálogo mínimo: un examen con un parámetro numérico y uno de texto, un médico y un bioquímico.
 async function sembrarCatalogo(servicios) {

@@ -92,10 +92,9 @@ El token viaja en `Authorization: Bearer <JWT>`. El frontend lo guarda en `sessi
 
 ### 3.3 Obtención del token
 
-- **Inicio de sesión común (pendiente del equipo):** debe redirigir a `https://<host>/#access_token=<JWT>`. La interfaz lee el fragmento, lo borra de la URL y llama a `/api/sesion`.
-- **Inicio de sesión actual:** `POST /auth/login` con `{ usuario, contrasena }`, contra la colección `usuarios` de la institución que atiende este backend. Devuelve el JWT de la sesión; el usuario nunca lo ve ni lo escribe.
+- **Proveedor de identidad externo (no implementado):** si más adelante se usa uno, debe redirigir a `https://<host>/#access_token=<JWT>`. La interfaz lee el fragmento, lo borra de la URL y llama a `/api/sesion`.
+- **Inicio de sesión actual:** `POST /auth/login` con `{ usuario, contrasena }`, común a las cuatro instituciones; las cuentas sin prefijo se validan en la colección `usuarios` de Pediatría. Devuelve el JWT de la sesión; el usuario nunca lo ve ni lo escribe.
 - **Laboratorio, Clínica Odontológica y Hospital General:** el mismo formulario. Las cuentas con prefijo `lab.`, `odonto.` u `hosp.` se validan en la base de su institución (PostgreSQL, Firestore o MySQL), que devuelve el JWT de esa institución. Cada módulo declara `prefijoUsuario` y `autenticar(usuario, contraseña)`. Las cuentas se crean con `npm run lab:usuarios` y `npm run odonto:usuarios`.
-- **Tokens de desarrollo (solo pruebas):** `npm run lab:token -- <rol> <usuario>` o `npm run odonto:token -- <rol> <usuario>` y abrir `http://localhost:3001/#access_token=<JWT>`.
 - **Varias instituciones por usuario (no implementado):** el backend tendría que informar las instituciones autorizadas y emitir un token por institución. El frontend solo cambiaría `sesionAutorizaA()` en `plataforma/portal/portal.js`.
 
 ## 4. Contrato HTTP y errores
