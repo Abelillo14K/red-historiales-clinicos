@@ -2,47 +2,37 @@
 
 | | |
 |---|---|
-| Estado | **Preparado visualmente · pendiente de integración** (no registrado en `apps/web/src/plataforma/modulos/registro.js`) |
-| Identificador | `hospital_general` (debe coincidir con el claim `institucion` del JWT y con la clave del backend) |
+| Estado | **Implementado**: backend MySQL, interfaz conectada y montado en el servidor común |
+| Identificador | `hospital_general` (claim `institucion` del JWT, clave del enrutador y del módulo) |
 | Responsable | Ely (`docs/GUIA_EQUIPO.md` §1) |
-| Motor | Por confirmar por el equipo (`docs/GUIA_EQUIPO.md` §1) |
-| Vista previa | `npm run web:dev` → <http://localhost:5173/vista-previa/hospital_general> |
+| Motor | MySQL 8 |
+| Puesta en marcha | [`backend/README.md`](backend/README.md) |
 
 ## Contenido
-
-No hay carpeta `backend/` todavía: se crea cuando el responsable empiece a escribirlo (`docs/GUIA_EQUIPO.md` §6), junto con `tests/` y `docs/` propios.
 
 ```
 instituciones/hospital/
   README.md                    este archivo
+  backend/                     Express + MySQL (ESM, con su propio package.json)
+    sql/                         esquema de 29 tablas y datos base ficticios
+    scripts/crear-usuario.js     npm run hospital:usuario
+    src/modulo.js                composición para el servidor común
+    src/router.js                rutas relativas a /api, incluida GET /sesion
+    src/rutas/                   panel, pacientes, clínico, citas, hospitalización, catálogos, auditoría e inicio de sesión
+    src/seguridad.js             verificación del JWT y permisos por rol
   frontend/                    módulo React (lo carga apps/web; sin package.json propio)
     modulo.js                    manifiesto: rutas, navegación, permisos, acción rápida
-    api.js                       punto de integración con SU backend (hoy sin operaciones)
-    paginas/
-      Panel.jsx                  indicadores (—), consultas recientes, accesos rápidos
-      Pacientes.jsx              búsqueda y listado (también lo usa Archivados)
-      PacienteNuevo.jsx          cinco secciones del mockup (formulario deshabilitado)
-      Expediente.jsx             datos, consultas, diagnósticos, tratamientos, medicamentos, exámenes, hospitalizaciones y antecedentes
-      NuevaConsulta.jsx          atención, signos vitales, notas, diagnósticos, receta y exámenes
-      Archivar.jsx               motivos de baja, datos de traslado/certificado y confirmación
-      SeccionHospital.jsx        vistas de hospitalización, catálogos y bitácora
-      Citas.jsx                  agenda (extensión propuesta)
-      Archivados.jsx             historiales archivados
-    componentes/
-      EncabezadoExpediente.jsx   encabezado del expediente y datos clave
+    api.js                       llamadas a su backend
+    paginas/                     panel, pacientes, expediente, consulta, citas, hospitalización, catálogos, bitácora y archivo
+    componentes/                 encabezado del expediente y buscador de pacientes
 ```
 
 Rutas: `/`, `/pacientes`, `/pacientes/nuevo`, `/pacientes/:id[/:seccion]`, `/pacientes/:id/consultas/nueva`, `/pacientes/:id/archivar`, `/citas`, `/hospitalizacion`, `/catalogos`, `/bitacora`, `/archivados`.
-Permisos: los comunes de la plataforma y `hospital.citas.ver` / `hospital.hospitalizacion.ver` (propuestas).
 
-El diseño sigue **Historial Clínico — Mockup.pdf**. Para recorrerlo: `/vista-previa/hospital_general/pacientes` → «ver la estructura del expediente» → «Ver diseño de consulta» o «Ver diseño de archivado». Los formularios presentan la estructura completa sin realizar escrituras. Detalles visuales en `docs/DISENO.md`.
+## Acceso
 
-## Qué falta (lo decide el responsable del Hospital)
+Se entra por el formulario común con una cuenta que empiece con `hosp.`. La cuenta se valida en la tabla `usuario` de MySQL. Roles: `administrador`, `medico`, `enfermeria` y `recepcion`; sus permisos están en `backend/src/seguridad.js`.
 
-1. Backend propio con su motor que atienda `GET /api/sesion` y las rutas del contrato común (`docs/GUIA_EQUIPO.md` §3–§6).
-2. `roles` del manifiesto y los permisos reales de cada ruta.
-3. Operaciones en `frontend/api.js` y carga real en cada página (`docs/GUIA_EQUIPO.md` §5–§7).
-4. Confirmar los campos propuestos por el mockup, sus catálogos y reglas, y los modelos de citas, hospitalización, alergias y exámenes.
-5. Registrar el módulo en `registro.js` (una línea, coordinada).
+## Pendiente
 
-Mientras tanto no hay datos ficticios, ni peticiones, ni mensajes de «guardado».
+Todavía no tiene pruebas automatizadas propias.

@@ -8,8 +8,7 @@
   "scripts": {
     "start": "node --env-file=.env src/index.js",
     "dev": "node --env-file=.env --watch src/index.js",
-    "db:crear-usuario": "node --env-file=.env scripts/crear-usuario.js",
-    "token:dev": "node --env-file=.env scripts/token-dev.js"
+    "db:crear-usuario": "node --env-file=.env scripts/crear-usuario.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

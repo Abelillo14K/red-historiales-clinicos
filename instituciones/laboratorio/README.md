@@ -24,7 +24,7 @@ instituciones/laboratorio/
     index.js                composición: conexión → adaptador → casos de uso → router
     security.js permisos.js schema.js db.js
   frontend/                 módulo React (manifiesto, api.js, páginas y componentes)
-  scripts/                  esquema.js (npm run lab:esquema) y dev-token.js (npm run lab:token)
+  scripts/                  esquema.js (npm run lab:esquema) y usuarios.js (npm run lab:usuarios)
   tests/                    dominio, servicios, API, permisos e integración con PostgreSQL desechable
   docs/                     modelo, consistencia, seguridad y justificación del motor
 ```
@@ -60,14 +60,6 @@ npm run lab:usuarios      # crea lab.admin, lab.recepcion, lab.tecnico y lab.bio
 Las contraseñas aparecen una sola vez y se agregan a `DATOS_DE_ACCESO_LABORATORIO.txt`, **fuera del repositorio** (carpeta que contiene el proyecto). Volver a ejecutarlo no cambia las cuentas existentes; `npm run lab:usuarios -- --restablecer` genera contraseñas nuevas. Cada inicio de sesión, correcto o fallido, queda en la bitácora.
 
 Se entra por el formulario común de la pantalla de acceso: `POST /auth/login` reconoce el prefijo `lab.` y valida la cuenta con `autenticar(usuario, contraseña)` del módulo, que devuelve el JWT de `laboratorio_clinico`. Para que `lab.bioquimico` valide resultados, regístrelo como personal activo con ese mismo usuario (Catálogos → Personal del laboratorio).
-
-## Token de desarrollo (solo pruebas)
-
-```powershell
-npm run lab:token -- administrador EDDY-ADMIN     # roles: recepcion, tecnico, bioquimico, administrador
-```
-
-Abra `http://localhost:3001/#access_token=<JWT>`. El token dura 8 horas y solo vale con el `JWT_SECRET` de ese `.env`.
 
 ## Roles y permisos
 
