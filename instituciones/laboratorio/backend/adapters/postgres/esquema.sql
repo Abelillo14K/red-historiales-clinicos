@@ -135,6 +135,16 @@ CREATE TABLE IF NOT EXISTS resultado_detalle (
     CHECK (num_nonnulls(valor_numerico, valor_texto) = 1)
 );
 
+-- Cuentas de inicio de sesión: la contraseña se guarda solo como hash scrypt.
+CREATE TABLE IF NOT EXISTS cuenta_acceso (
+    usuario         VARCHAR(40)  PRIMARY KEY CHECK (usuario ~ '^[a-z][a-z0-9._-]{2,39}$'),
+    rol             VARCHAR(20)  NOT NULL CHECK (rol IN ('recepcion', 'tecnico', 'bioquimico', 'administrador')),
+    hash_contrasena VARCHAR(200) NOT NULL CHECK (hash_contrasena LIKE 'scrypt$%'),
+    activo          BOOLEAN      NOT NULL DEFAULT TRUE,
+    creado          TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    actualizado     TIMESTAMPTZ
+);
+
 -- Bitácora de accesos y cambios (solo se agrega, nunca se modifica).
 CREATE TABLE IF NOT EXISTS bitacora (
     id_evento   BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

@@ -13,7 +13,8 @@ const DUPLICADOS = {
   tipo_muestra_nombre_key: 'Ya existe ese tipo de muestra',
   tipo_examen_nombre_key: 'Ya existe ese tipo de examen',
   parametro_nombre_key: 'Ya existe ese parámetro',
-  examen_codigo_muestra_key: 'Código de muestra repetido'
+  examen_codigo_muestra_key: 'Código de muestra repetido',
+  cuenta_acceso_pkey: 'Ya existe una cuenta con ese usuario'
 };
 
 function traducirError(e) {

@@ -34,6 +34,11 @@ const PUERTOS = {
     'medicos', 'obtenerMedico', 'crearMedico',
     'personal', 'personalPorUsuario', 'crearPersonal'
   ],
+  CuentaRepository: [
+    'obtener',              // (usuario) -> {usuario, rol, hash_contrasena, activo}|null
+    'crear',                // ({usuario, rol, hash_contrasena}) -> void; usuario repetido -> conflicto
+    'actualizarContrasena'  // (usuario, hash) -> void
+  ],
   AuditoriaRepository: ['registrar', 'listar'],
   // ejecutar(fn): llama fn(repos) con repositorios ligados a una transacción; confirma si fn termina, revierte si lanza.
   UnidadDeTrabajo: ['ejecutar']
@@ -41,7 +46,7 @@ const PUERTOS = {
 
 const REPOSITORIOS = {
   pacientes: 'PacienteRepository', solicitudes: 'SolicitudRepository', resultados: 'ResultadoRepository',
-  catalogos: 'CatalogoRepository', auditoria: 'AuditoriaRepository'
+  catalogos: 'CatalogoRepository', cuentas: 'CuentaRepository', auditoria: 'AuditoriaRepository'
 };
 
 function verificarPuerto(nombre, implementacion) {
