@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useSesion } from '../sesion/SesionContext.jsx';
 import { Alerta, BotonEnviar, FormField, Icon, LoadingState, useEnvio } from '../ui/index.js';
 import { Logo } from '../layout/Sidebar.jsx';
-import { NOMBRE_PLATAFORMA, registro } from '../modulos/registro.js';
+import { NOMBRE_PLATAFORMA } from '../modulos/registro.js';
 import { destinoTrasLogin } from '../portal/portal.js';
 
 const INSTITUCIONES = [
@@ -14,23 +14,14 @@ const INSTITUCIONES = [
 ];
 
 export default function Login() {
-  const { sesion, verificando, aviso, iniciarDesarrollo, iniciarConToken, configuracion } = useSesion();
+  const { sesion, verificando, aviso, iniciarSesion } = useSesion();
   const loc = useLocation();
-  const [config, setConfig] = useState(null);
-  const [rol, setRol] = useState('medico');
-  const [usuario, setUsuario] = useState('USUARIO-DEMO');
-  const [token, setToken] = useState('');
+  const [usuario, setUsuario] = useState('');
+  const [contrasena, setContrasena] = useState('');
   const envio = useEnvio();
-
-  useEffect(() => {
-    configuracion().then(setConfig).catch(e => setConfig({ dev_login: false, error: e.message }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Tras validar la sesión: el portal de instituciones, salvo un enlace profundo pendiente.
   if (sesion) return <Navigate to={destinoTrasLogin(loc.state?.desde)} replace />;
-  // El acceso de desarrollo emite tokens para la institución que atiende este backend (/auth/config).
-  const MODULO_DESARROLLO = config?.institucion ? registro.modulo(config.institucion) : null;
 
   return (
     <div className="login-page">
@@ -54,50 +45,19 @@ export default function Login() {
         <div className="card login-card" id="formulario-acceso" tabIndex={-1}>
           <h2>Iniciar sesión</h2>
           <p className="login-greeting">Bienvenida de nuevo. Accede a los historiales de tu institución.</p>
-          {aviso && aviso !== config?.error && <Alerta tipo="warn">{aviso}</Alerta>}
-          {config?.error && <Alerta titulo="No se puede contactar la API">{config.error}</Alerta>}
+          {aviso && <Alerta tipo="warn">{aviso}</Alerta>}
           {envio.error && <Alerta>{envio.error.message}</Alerta>}
-          {(verificando || (!config && !verificando)) && <LoadingState texto={verificando ? 'Verificando sesión…' : 'Cargando…'} compacto />}
+          {verificando && <LoadingState texto="Verificando sesión…" compacto />}
 
-          <section className="login-section" aria-labelledby="acceso-institucional">
-            <h3 id="acceso-institucional"><Icon name="institucion" /> Acceso institucional</h3>
-            <p className="meta">El acceso con credenciales institucionales está pendiente de integración. Por ahora, utiliza un token o el modo de desarrollo.</p>
-            <fieldset disabled className="fieldset-plain institutional-access">
-              <legend className="sr-only">Credenciales institucionales pendientes de integración</legend>
-              <FormField label="Usuario institucional">{p => <input {...p} placeholder="Tu usuario" autoComplete="username" />}</FormField>
-              <FormField label="Contraseña">{p => <input {...p} type="password" placeholder="Tu contraseña" autoComplete="current-password" />}</FormField>
-            </fieldset>
-            <details>
-              <summary>Usar un token institucional</summary>
-              <form className="stack" onSubmit={e => { e.preventDefault(); if (token.trim()) iniciarConToken(token); }}>
-                <FormField label="JWT institucional" hint="Debe estar firmado por el servidor y declarar su institución">
-                  {p => <textarea {...p} value={token} onChange={e => setToken(e.target.value)} rows={3} spellCheck={false} />}
-                </FormField>
-                <button type="submit" className="btn btn-block" disabled={!token.trim()}>Validar token</button>
-              </form>
-            </details>
-          </section>
-
-          {config?.dev_login && MODULO_DESARROLLO && (
-            <section className="login-section dev" aria-labelledby="acceso-desarrollo">
-              <h3 id="acceso-desarrollo"><Icon name="codigo" /> Modo de desarrollo <span className="badge warn plain">Solo pruebas</span></h3>
-              <p className="meta">Emite un token de prueba para {MODULO_DESARROLLO?.nombre}, sin contraseña. No es un mecanismo de autenticación real y se desactiva con NODE_ENV=production.</p>
-              <form className="stack" onSubmit={e => { e.preventDefault(); envio.enviar(() => iniciarDesarrollo(rol, usuario.trim() || 'USUARIO-DEMO')); }}>
-                <fieldset className="role-fieldset">
-                  <legend>Rol</legend>
-                  <div className="role-picker">
-                    {Object.entries(MODULO_DESARROLLO?.roles || {}).map(([v, t]) => (
-                      <label key={v}><input type="radio" name="rol" value={v} checked={rol === v} onChange={() => setRol(v)} />{t}</label>
-                    ))}
-                  </div>
-                </fieldset>
-                <FormField label="Identificador de usuario" hint="Letras, números, guion o guion bajo">
-                  {p => <input {...p} value={usuario} onChange={e => setUsuario(e.target.value)} maxLength={40} pattern="[A-Za-z0-9_\-]{1,40}" autoComplete="username" />}
-                </FormField>
-                <BotonEnviar enviando={envio.enviando} className="btn btn-primary btn-block">Entrar (modo desarrollo)</BotonEnviar>
-              </form>
-            </section>
-          )}
+          <form className="stack" onSubmit={e => { e.preventDefault(); envio.enviar(() => iniciarSesion(usuario.trim(), contrasena)); }}>
+            <FormField label="Usuario" required>
+              {p => <input {...p} value={usuario} onChange={e => setUsuario(e.target.value)} maxLength={80} autoComplete="username" required />}
+            </FormField>
+            <FormField label="Contraseña" required>
+              {p => <input {...p} type="password" value={contrasena} onChange={e => setContrasena(e.target.value)} maxLength={200} autoComplete="current-password" required />}
+            </FormField>
+            <BotonEnviar enviando={envio.enviando} className="btn btn-primary btn-block">Iniciar sesión</BotonEnviar>
+          </form>
 
           {/* Solo en `vite` (desarrollo): la compilación de producción elimina este enlace y la vista previa. */}
           {import.meta.env.DEV && (

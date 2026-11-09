@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+CREDENCIALES_ACCESO.txt
 *.pem
 *.key
 *.p12

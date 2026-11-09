@@ -1,8 +1,7 @@
 'use strict';
-// /auth/dev-login detrás del servidor de desarrollo de Vite ejecutado como `vite --host`.
-// Levanta Vite REAL con apps/web/vite.config.js y la API real (doble en memoria); el
-// cliente "remoto" se conecta por la IP de red del propio equipo, así que el socket
-// que ven Vite y Express no es loopback. Se omite sin Vite instalado o sin red IPv4.
+// Inicio de sesión a través del proxy del servidor de desarrollo de Vite. Levanta Vite REAL
+// con apps/web/vite.config.js y la API real (doble en memoria). Se omite sin Vite instalado
+// o sin red IPv4.
 require('../instituciones/pediatria/tests/helpers'); // variables de entorno de prueba (NODE_ENV=test, JWT_SECRET)
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
@@ -14,7 +13,7 @@ const { pathToFileURL } = require('node:url');
 const { crearApp } = require('../instituciones/pediatria/backend/app');
 const { crearServicios } = require('../instituciones/pediatria/backend/application');
 const { crearRepositoriosMemoria } = require('../instituciones/pediatria/tests/doubles/memoria');
-const { fixtures } = require('../instituciones/pediatria/tests/helpers');
+const { fixtures, CONTRASENA_PRUEBA } = require('../instituciones/pediatria/tests/helpers');
 
 const FRONTEND = path.join(__dirname, '..', 'apps', 'web');
 const VITE = path.join(FRONTEND, 'node_modules', 'vite', 'dist', 'node', 'index.js');
@@ -25,7 +24,7 @@ const puertoLibre = () => new Promise((resolve, reject) => {
   const s = net.createServer().once('error', reject).listen(0, '0.0.0.0', () => { const { port } = s.address(); s.close(() => resolve(port)); });
 });
 
-describe('dev-login a través del proxy de Vite con --host', { skip: omitir }, () => {
+describe('inicio de sesión a través del proxy de Vite con --host', { skip: omitir }, () => {
   let api, vite, apiPort, vitePort;
   before(async () => {
     const app = crearApp(crearServicios(crearRepositoriosMemoria(fixtures())), { frontendDist: null });
@@ -56,12 +55,11 @@ describe('dev-login a través del proxy de Vite con --host', { skip: omitir }, (
     try { datos = JSON.parse(texto); } catch { /* HTML */ }
     return { status: res.status, datos };
   };
-  const devLogin = (host, port, headers) => pedir(host, port, '/auth/dev-login', { metodo: 'POST', body: { rol: 'administrador' }, headers });
+  const entrar = (host, port, contrasena = CONTRASENA_PRUEBA) => pedir(host, port, '/auth/login', { metodo: 'POST', body: { usuario: 'usr-administrador', contrasena } });
 
-  test('local por Vite: la demo obtiene token y el frontend funciona', async () => {
-    const login = await devLogin('127.0.0.1', vitePort);
+  test('por Vite: la contraseña correcta abre sesión y el frontend funciona', async () => {
+    const login = await entrar('127.0.0.1', vitePort);
     assert.equal(login.status, 200);
-    assert.equal((await pedir('127.0.0.1', vitePort, '/auth/config')).datos.dev_login, true);
     const sesion = await pedir('127.0.0.1', vitePort, '/api/sesion', { headers: { Authorization: `Bearer ${login.datos.token}` } });
     assert.equal(sesion.status, 200);
     const pagina = await pedir('localhost', vitePort, '/');
@@ -70,23 +68,16 @@ describe('dev-login a través del proxy de Vite con --host', { skip: omitir }, (
     assert.equal((await pedir('localhost', vitePort, '/salud')).datos.ok, true);
   });
 
-  test('remoto directo a la API: denegado', async () => {
-    assert.equal((await devLogin(ipLan, apiPort)).status, 403);
-  });
-
-  test('remoto a través de Vite: denegado y sin botón de demo', async () => {
-    const r = await devLogin(ipLan, vitePort);
-    assert.equal(r.status, 403);
-    assert.equal(r.datos.codigo, 'DEV_LOGIN_SOLO_LOCAL');
-    assert.equal((await pedir(ipLan, vitePort, '/auth/config')).datos.dev_login, false);
-  });
-
-  test('X-Forwarded-For manipulado no elude la restricción', async () => {
-    for (const xff of ['127.0.0.1', '::1', '127.0.0.1, 127.0.0.1', '::ffff:127.0.0.1']) {
-      const h = { 'X-Forwarded-For': xff };
-      assert.equal((await devLogin(ipLan, vitePort, h)).status, 403, `por Vite con XFF ${xff}`);
-      assert.equal((await devLogin(ipLan, apiPort, h)).status, 403, `directo con XFF ${xff}`);
-      assert.equal((await pedir(ipLan, vitePort, '/auth/config', { headers: h })).datos.dev_login, false);
+  test('por Vite y desde la red: una contraseña incorrecta no abre sesión', async () => {
+    for (const [host, port] of [['127.0.0.1', vitePort], [ipLan, vitePort], [ipLan, apiPort]]) {
+      const r = await entrar(host, port, 'incorrecta');
+      assert.equal(r.status, 401);
+      assert.equal(r.datos.token, undefined);
     }
+  });
+
+  test('el acceso de desarrollo ya no existe detrás del proxy', async () => {
+    const r = await pedir('127.0.0.1', vitePort, '/auth/dev-login', { metodo: 'POST', body: { rol: 'administrador' } });
+    assert.equal(r.status, 404);
   });
 });

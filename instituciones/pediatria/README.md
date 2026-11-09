@@ -42,13 +42,13 @@ npm run db:validadores               # solo lectura: documentos frente a los val
 npm run db:indices                   # crea índices que falten (idempotente, no borra)
 npm run db:respaldo                  # respaldo BSON en respaldos/mongodb/<fecha>/ (raíz del repositorio)
 npm run db:restaurar-aislado -- <carpeta>   # restaura en un mongod temporal y compara
-npm run token:dev -- <rol> <usuario>        # JWT de desarrollo
+npm run db:crear-accesos             # crea las cuentas iniciales y CREDENCIALES_ACCESO.txt
 ```
 
 Alta de catálogos en una base vacía (la interfaz los consulta, no los crea), con la API en marcha:
 
 ```powershell
-$t = (Invoke-RestMethod -Method Post http://localhost:3001/auth/dev-login -ContentType 'application/json' -Body '{"rol":"administrador","usuario":"ADMIN-DEMO"}').token
+$t = (Invoke-RestMethod -Method Post http://localhost:3001/auth/login -ContentType 'application/json' -Body '{"usuario":"admin","contrasena":"<contraseña de CREDENCIALES_ACCESO.txt>"}').token
 $h = @{ Authorization = "Bearer $t" }
 Invoke-RestMethod -Method Post http://localhost:3001/api/medicos -Headers $h -ContentType 'application/json; charset=utf-8' -Body '{"id_medico":"M001","colegiado":"COL-FICTICIO-001","nombres":"Lucia","apellidos":"Ejemplo","especialidad":{"id_especialidad":"ESP01","nombre":"Pediatria"}}'
 Invoke-RestMethod -Method Post http://localhost:3001/api/vacunas -Headers $h -ContentType 'application/json; charset=utf-8' -Body '{"id_vacuna":"V001","nombre":"Vacuna demostrativa A","descripcion":"Dato ficticio"}'
@@ -66,7 +66,7 @@ Ninguna prueba toca `centro_pediatrico_db`: las de integración y de interfaz in
 | `tests/permisos.test.js` | La sesión informa institución y permisos; cada permiso anunciado coincide con la autorización real de las rutas (12 permisos × 3 roles) |
 | `tests/mongo.integration.test.js` | **MongoDB real**: validador instalado y de Fase II (respaldo, aplicación, reversión), rechazo de escrituras directas inválidas, flujo clínico completo, datos heredados, outbox con bitácora caída, archivado; transacciones reales en replica set |
 | `tests/dominio.test.js`, `tests/schema.test.js` | Reglas de dominio, contratos de puertos y esquemas Zod |
-| `tests/hallazgos-auditoria.test.js` | Regresión de los cinco hallazgos de la auditoría técnica: `/auth/dev-login` solo local, altas concurrentes del mismo paciente, fecha de nacimiento frente a la vacunación registrada, regla temporal de prescripciones y auditoría de altas de catálogo |
+| `tests/hallazgos-auditoria.test.js` | Regresión de los cinco hallazgos de la auditoría técnica: acceso de desarrollo eliminado, altas concurrentes del mismo paciente, fecha de nacimiento frente a la vacunación registrada, regla temporal de prescripciones y auditoría de altas de catálogo |
 | `tests/identificador-paciente.test.js` | Identificador automático `P###` (defecto D-01): ids manuales válidos, duplicados (409), ids reservados `P` + dígitos (400), ids inválidos, ids heredados largos, secuencia agotada (409), altas simultáneas y dos instancias; mismo resultado en el doble y en MongoDB desechable |
 | `tests/integridad-auditoria.test.js` | Duplicados al editar, carreras alta/edición y ediciones parciales, nacimiento concurrente con consultas/crecimiento/vacunación, lecturas auditadas, error 503 al fallar la bitácora e índices esenciales; carreras repetidas contra MongoDB standalone y replica set en `mongo.integration.test.js` |
 | `tests/e2e/flujo-ui.e2e.js` | Interfaz real: inicio de sesión, panel, búsqueda, registro, edición, consulta, diagnóstico, tratamiento, receta, crecimiento y gráficas, vacunación, archivado, auditoría, permisos (también rechazo directo del backend), migas de pan, institución, motor oculto, persistencia en MongoDB, tema claro predeterminado, oscuro y según el sistema (persistentes y sin parpadeo), teclado y foco visible, menú contraído, menú de usuario con teclado y dentro de la ventana, panel de seis indicadores según el ancho, escritorio 1920 px, portátil 1366 px, tablet 820 px y móvil 390 px (claro y oscuro) sin desbordes, caída de la API, accesibilidad básica y **contraste WCAG AA medido** en claro y oscuro. Capturas comparativas en `tests/e2e/capturas/` |
@@ -87,8 +87,7 @@ Todas las rutas `/api/*` requieren `Authorization: Bearer <JWT>`. **M** = médic
 | Método | Ruta | Roles | Descripción |
 |---|---|---|---|
 | GET | `/salud` | público | Estado de la API |
-| GET | `/auth/config` | público | Indica si el acceso de desarrollo está habilitado |
-| POST | `/auth/dev-login` | público (solo desarrollo) | Emite un JWT de desarrollo `{rol, usuario}` |
+| POST | `/auth/login` | público (máximo 20 intentos por minuto) | Valida usuario y contraseña; devuelve el JWT de la sesión (8 h) |
 | GET | `/api/sesion` | M S A | Usuario, rol, institución, motor, expiración y `capacidades` |
 | GET | `/api/panel` | M S A | Contadores (S solo ve pacientes; dosis pendientes solo de historiales activos), consultas recientes, próximas dosis |
 | GET | `/api/pacientes?q=&estado=&sexo=&limite=&pagina=` | M S A | Listado y búsqueda (`Archivado`/`Todos` solo A; DPI solo S y A) |
@@ -112,7 +111,7 @@ Todas las rutas `/api/*` requieren `Authorization: Bearer <JWT>`. **M** = médic
 | POST | `/api/medicos` · `/api/vacunas` | A | Altas de catálogo |
 | GET | `/api/auditoria?id_paciente=&accion=&limite=` · `/api/auditoria/:id` | A | Bitácora |
 
-Errores con el formato común `{ error, codigo, detalles? }` (tabla completa de códigos en [`docs/GUIA_EQUIPO.md`](../../docs/GUIA_EQUIPO.md) §4): `400` datos inválidos (con `detalles` por campo), `401` sin token, inválido o vencido, `403` rol sin permiso o institución no registrada, `404` inexistente, `409` duplicado, historial archivado, dosis no pendiente o cambio concurrente incompatible, `413` cuerpo mayor a 100 KB, `422` referencia inexistente o rechazo del validador (`VALIDACION_MOTOR`), `503 AUDITORIA_NO_DISPONIBLE` si no se puede registrar una lectura o el acceso de desarrollo antes de devolver datos/token.
+Errores con el formato común `{ error, codigo, detalles? }` (tabla completa de códigos en [`docs/GUIA_EQUIPO.md`](../../docs/GUIA_EQUIPO.md) §4): `400` datos inválidos (con `detalles` por campo), `401` sin token, inválido o vencido, `403` rol sin permiso o institución no registrada, `404` inexistente, `409` duplicado, historial archivado, dosis no pendiente o cambio concurrente incompatible, `413` cuerpo mayor a 100 KB, `422` referencia inexistente o rechazo del validador (`VALIDACION_MOTOR`), `503 AUDITORIA_NO_DISPONIBLE` si no se puede registrar una lectura o el inicio de sesión antes de devolver datos/token.
 
 ## 6. Roles y permisos
 
@@ -134,7 +133,7 @@ La tabla rol → permisos está en `backend/permisos.js`: la usan las rutas para
 - **Entrada:** Zod estricto (rechaza campos desconocidos y operadores `$…`), límites de longitud y rango, parámetros de ruta con patrón, JSON de 100 KB como máximo. El mismo conjunto de reglas está en los validadores `$jsonSchema`.
 - **Autenticación y autorización:** JWT HS256 (issuer, audience, expiración obligatoria, `institucion`); permisos por rol en cada ruta; enrutamiento por institución.
 - **Datos personales:** DPI del tutor enmascarado para el médico; búsqueda por DPI solo para roles administrativos; datos clínicos nunca expuestos a secretaría.
-- **Auditoría:** `bitacora_acceso` registra lecturas, escrituras, accesos denegados e inicios de sesión de desarrollo. Listado, panel y pendientes de vacunación también registran sus accesos. Las lecturas y el acceso de desarrollo solo responden con datos/token si se persistió su evento; si falla, devuelven `503`. En escrituras clínicas el evento se guarda **en el mismo `updateOne`** que el cambio (outbox) y se entrega de forma idempotente. Ver la limitación 1.
+- **Auditoría:** `bitacora_acceso` registra lecturas, escrituras, accesos denegados e inicios de sesión, correctos y fallidos. Listado, panel y pendientes de vacunación también registran sus accesos. Las lecturas y el inicio de sesión solo responden con datos/token si se persistió su evento; si falla, devuelven `503`. En escrituras clínicas el evento se guarda **en el mismo `updateOne`** que el cambio (outbox) y se entrega de forma idempotente. Ver la limitación 1.
 - **Consistencia:** cada operación clínica es un único `updateOne` condicional (estado y nacimiento vigente en el filtro); concurrencia optimista en identidad, tutores y tratamiento; referencias verificadas antes de escribir; índices únicos. La API no arranca si falla un índice esencial. Las altas y ediciones comparten la exclusión por identidad destino dentro de la instancia actual del servicio.
 - **Secretos:** credenciales solo en `.env`; el navegador solo guarda el JWT en `sessionStorage`; errores 500 sin detalles internos.
 
@@ -154,7 +153,7 @@ La tabla rol → permisos está en `backend/permisos.js`: la usan las rutas para
 
 1. **Sin transacciones multidocumento** (servidor standalone). La escritura clínica y su evento son atómicos dentro del documento del paciente, pero la copia a `bitacora_acceso` es posterior y puede retrasarse. Las lecturas no tienen outbox: si su evento falla no se entregan los datos. Los accesos denegados permanecen rechazados aunque falle la auditoría. Las altas de catálogo conservan la limitación de auditoría posterior sin outbox. La ruta transaccional está **verificada con un replica set desechable**; migrar el servidor real requiere autorización (plan en `docs/OPERACION_MONGODB.md`).
 2. **Validadores de Fase II:** aplicados por el administrador en `centro_pediatrico_db` (comprobado el 24/10/2026 con `npm run db:validadores`: las 4 colecciones tienen validador, el perímetro cefálico es opcional y 0 documentos incumplen). Si hubiera que revertirlos, el procedimiento está en `docs/OPERACION_MONGODB.md` §2.3 (requiere el respaldo creado al aplicarlos).
-3. **Autenticación de desarrollo:** `/auth/dev-login` y `scripts/dev-token.js` no son un inicio de sesión real (sin contraseñas). `/auth/dev-login` solo responde a peticiones del propio equipo, también detrás de `vite --host`; desde otro dispositivo, un token generado con `npm run token:dev` se pega en «Usar un token institucional». El inicio de sesión común corresponde al equipo.
+3. **Inicio de sesión:** usuario y contraseña contra la colección `usuarios`, con contraseñas cifradas con scrypt. No hay pantalla para cambiar o recuperar contraseñas ni para administrar cuentas: las iniciales se crean con `npm run db:crear-accesos`. El inicio de sesión común entre instituciones corresponde al equipo.
 4. La unicidad de identificadores dentro de arreglos (consultas, controles, dosis) se garantiza con filtros condicionales por documento, no con índices.
 5. Crecimiento del documento: el límite de 16 MiB se considera suficiente para el volumen pediátrico (análisis en `docs/MODELO_Y_DECISIONES.md`).
 6. Los límites de peso, talla y perímetro son de captura (evitan errores de digitación), no criterios clínicos. El limitador de solicitudes funciona en memoria (un solo proceso).

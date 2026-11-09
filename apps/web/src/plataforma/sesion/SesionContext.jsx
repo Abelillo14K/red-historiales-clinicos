@@ -2,10 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { crearApiPlataforma, crearHttp } from '../api/http.js';
 import { puede as tienePermiso, resolverSesion } from '../modulos/contrato.js';
 
-// Sesión basada en el JWT que valida el backend. Formas de obtener el token:
-//  1) Desarrollo: POST /auth/dev-login (solo si el backend lo habilita).
-//  2) Acceso institucional (inicio de sesión común, pendiente del equipo): redirige con
-//     #access_token=<JWT> (fragmento: no viaja al servidor ni a los registros) o se pega el token.
+// Sesión basada en el JWT que emite y valida el backend. Formas de obtener el token:
+//  1) Inicio de sesión con usuario y contraseña: POST /auth/login.
+//  2) Acceso común entre instituciones (pendiente del equipo): redirige con
+//     #access_token=<JWT> (fragmento: no viaja al servidor ni a los registros).
 // La institución y los permisos SIEMPRE provienen de GET /api/sesion, nunca del token
 // decodificado en el navegador ni de una elección del usuario.
 const CLAVE = 'plataforma.token';
@@ -79,12 +79,10 @@ export function SesionProvider({ registro, children }) {
     // Solo decide qué se MUESTRA; el backend vuelve a autorizar cada operación.
     puede: permiso => tienePermiso(sesion, permiso),
     es: (...roles) => roles.includes(sesion?.rol),
-    iniciarConToken: t => { setAviso(null); setSalidaVoluntaria(false); setToken(t.trim()); },
-    async iniciarDesarrollo(rol, usuario) {
-      const r = await crearApiPlataforma(crearHttp()).devLogin(rol, usuario);
+    async iniciarSesion(usuario, contrasena) {
+      const r = await crearApiPlataforma(crearHttp()).login(usuario, contrasena);
       setAviso(null); setSalidaVoluntaria(false); setToken(r.token);
     },
-    configuracion: () => crearApiPlataforma(crearHttp()).config(),
     cerrarSesion
   }), [api, sesion, modulo, resolucion, verificando, aviso, salidaVoluntaria, cerrarSesion]);
 

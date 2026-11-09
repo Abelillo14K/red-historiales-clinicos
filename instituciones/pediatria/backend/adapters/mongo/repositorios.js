@@ -266,6 +266,14 @@ function crearVacunaRepository(db) {
   };
 }
 
+function crearUsuarioRepository(db) {
+  const col = db.collection('usuarios');
+  return {
+    obtenerPorUsuario: usuario => col.findOne({ usuario }, ses({ projection: SIN_ID })),
+    crear: seguro(async u => { await col.insertOne({ ...u }, ses()); })
+  };
+}
+
 function crearAuditoriaRepository(db) {
   const col = db.collection('bitacora_acceso');
   return {
@@ -280,5 +288,5 @@ function crearAuditoriaRepository(db) {
 }
 
 module.exports = {
-  crearPacienteRepository, crearMedicoRepository, crearVacunaRepository, crearAuditoriaRepository
+  crearPacienteRepository, crearMedicoRepository, crearVacunaRepository, crearUsuarioRepository, crearAuditoriaRepository
 };

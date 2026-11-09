@@ -3,9 +3,7 @@
 // doble en memoria. Las variantes con MongoDB real están en mongo.integration.test.js.
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const os = require('node:os');
 const { iniciar, fixtures } = require('./helpers');
-const { crearApp } = require('../backend/app');
 const { crearServicios } = require('../backend/application');
 const { crearRepositoriosMemoria } = require('./doubles/memoria');
 
@@ -17,38 +15,18 @@ const nuevoPaciente = (extra = {}) => ({
 const SEC = { id: 'USR-secretaria', rol: 'secretaria' };
 const medicamento = { nombre: 'Ficticio', dosis: 'N/A', frecuencia: 'N/A', duracion: 'N/A', via_administracion: 'N/A' };
 
-describe('Hallazgo 1: /auth/dev-login solo desde el propio equipo', () => {
+describe('Hallazgo 1: el acceso de desarrollo sin contraseña ya no existe', () => {
   let ctx;
   before(async () => { ctx = await iniciar(); });
   after(async () => { await ctx.cerrar(); });
 
-  test('la demo local sigue obteniendo token', async () => {
-    const r = await ctx.api('POST', '/auth/dev-login', { body: { rol: 'administrador' } });
-    assert.equal(r.status, 200);
-    assert.ok(r.datos.token);
-    assert.equal((await ctx.api('GET', '/auth/config')).datos.dev_login, true);
-  });
-
-  test('un cliente remoto detrás de un proxy local no obtiene token ni ve el acceso', async () => {
-    // trust proxy 'loopback': req.ip toma X-Forwarded-For solo si el par inmediato es local.
-    const remoto = { headers: { 'X-Forwarded-For': '192.168.1.50' } };
-    const r = await ctx.api('POST', '/auth/dev-login', { ...remoto, body: { rol: 'administrador' } });
-    assert.equal(r.status, 403);
-    assert.equal(r.datos.token, undefined);
-    assert.equal((await ctx.api('GET', '/auth/config', remoto)).datos.dev_login, false);
-  });
-
-  const ipLan = Object.values(os.networkInterfaces()).flat()
-    .find(i => i && i.family === 'IPv4' && !i.internal)?.address;
-  test('una conexión real por la interfaz de red del equipo no obtiene token', { skip: ipLan ? false : 'sin interfaz IPv4 externa' }, async () => {
-    const app = crearApp(crearServicios(crearRepositoriosMemoria()), { frontendDist: null });
-    const server = await new Promise(r => { const s = app.listen(0, '0.0.0.0', () => r(s)); });
-    try {
-      const res = await fetch(`http://${ipLan}:${server.address().port}/auth/dev-login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rol: 'administrador' })
-      });
-      assert.equal(res.status, 403);
-    } finally { await new Promise(r => server.close(r)); }
+  test('/auth/dev-login y /auth/config no responden en ningún rol', async () => {
+    for (const rol of ['medico', 'secretaria', 'administrador']) {
+      const r = await ctx.api('POST', '/auth/dev-login', { body: { rol, usuario: 'INTRUSO' } });
+      assert.equal(r.status, 404);
+      assert.equal(r.datos?.token, undefined);
+    }
+    assert.equal((await ctx.api('GET', '/auth/config')).status, 404);
   });
 });
 

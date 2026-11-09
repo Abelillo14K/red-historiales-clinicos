@@ -2,7 +2,7 @@
 // Pruebas HTTP de la API completa sobre el doble en memoria (sin MongoDB).
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { iniciar, token } = require('./helpers');
+const { iniciar, token, CONTRASENA_PRUEBA } = require('./helpers');
 
 let ctx;
 before(async () => { ctx = await iniciar(); });
@@ -301,14 +301,13 @@ describe('Catálogos, panel y sesión', () => {
     assert.equal(ses.datos.rol, 'administrador');
   });
 
-  test('inicio de sesión de desarrollo emite un token válido', async () => {
-    const cfg = await api('GET', '/auth/config');
-    assert.equal(cfg.datos.dev_login, true);
-    const r = await api('POST', '/auth/dev-login', { body: { rol: 'medico', usuario: 'DEMO-1' } });
+  test('el inicio de sesión con contraseña emite un token válido', async () => {
+    const r = await api('POST', '/auth/login', { body: { usuario: 'usr-medico', contrasena: CONTRASENA_PRUEBA } });
     assert.equal(r.status, 200);
+    assert.equal(r.datos.rol, 'medico');
     const ses = await api('GET', '/api/sesion', { headers: { Authorization: `Bearer ${r.datos.token}` } });
-    assert.equal(ses.datos.usuario, 'DEMO-1');
-    assert.equal((await api('POST', '/auth/dev-login', { body: { rol: 'root' } })).status, 400);
+    assert.equal(ses.datos.usuario, 'usr-medico');
+    assert.equal(ses.datos.rol, 'medico');
   });
 
   test('cabeceras de seguridad y rutas desconocidas', async () => {

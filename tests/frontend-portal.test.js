@@ -93,7 +93,7 @@ test('el portal solo navega: no usa tokens, almacenamiento de sesión ni peticio
   const dir = path.join(SRC, 'plataforma', 'portal');
   for (const f of fs.readdirSync(dir)) {
     const s = codigo(path.join(dir, f));
-    assert.ok(!/sessionStorage|localStorage|iniciarConToken|iniciarDesarrollo|devLogin|crearHttp|fetch\(|setToken|\bapi\./.test(s), `${f} no debe tocar la sesión ni hacer peticiones`);
+    assert.ok(!/sessionStorage|localStorage|iniciarSesion|crearHttp|fetch\(|setToken|\bapi\./.test(s), `${f} no debe tocar la sesión ni hacer peticiones`);
   }
   // La acción de vista previa del portal se carga solo en desarrollo (igual que la vista previa).
   const portal = fs.readFileSync(path.join(dir, 'Portal.jsx'), 'utf8');

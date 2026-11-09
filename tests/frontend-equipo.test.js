@@ -114,7 +114,7 @@ test('la vista previa solo se monta en desarrollo y no usa la sesión ni emite t
   assert.match(app, /import\.meta\.env\.DEV \? lazy\(\(\) => import\('\.\/plataforma\/vista-previa\/VistaPrevia\.jsx'\)\) : null/);
   for (const f of archivos(path.join(SRC, 'plataforma', 'vista-previa'))) {
     const s = codigo(f);
-    assert.ok(!/useSesion|sessionStorage|devLogin|iniciarConToken|crearHttp/.test(s), `${path.basename(f)} no debe tocar la sesión`);
+    assert.ok(!/useSesion|sessionStorage|iniciarSesion|crearHttp/.test(s), `${path.basename(f)} no debe tocar la sesión`);
   }
 });
 

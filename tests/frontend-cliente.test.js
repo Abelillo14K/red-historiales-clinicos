@@ -5,7 +5,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
-const { iniciar } = require('../instituciones/pediatria/tests/helpers');
+const { iniciar, CONTRASENA_PRUEBA } = require('../instituciones/pediatria/tests/helpers');
 
 let ctx, crearCliente, ApiError;
 const ruta = r => pathToFileURL(path.join(__dirname, '..', 'apps', 'web', 'src', r)).href;
@@ -24,7 +24,7 @@ after(async () => { await ctx.cerrar(); });
 
 async function sesion(rol) {
   const anon = crearCliente({ base: ctx.base });
-  const { token } = await anon.auth.devLogin(rol, `CLIENTE-${rol}`);
+  const { token } = await anon.auth.login(`usr-${rol}`, CONTRASENA_PRUEBA);
   return crearCliente({ base: ctx.base, obtenerToken: () => token });
 }
 
@@ -69,7 +69,7 @@ test('el cliente notifica 401 para cerrar la sesión y detecta servidor caído',
   await assert.rejects(c.panel(), e => e.status === 401);
   assert.equal(notificado.codigo, 'TOKEN_INVALIDO');
   const caido = crearCliente({ base: 'http://127.0.0.1:1' });
-  await assert.rejects(caido.auth.config(), e => e.status === 0 && e.codigo === 'SIN_CONEXION');
+  await assert.rejects(caido.auth.login('usr-medico', 'x'), e => e.status === 0 && e.codigo === 'SIN_CONEXION');
 });
 
 test('los identificadores se codifican en la URL', async () => {

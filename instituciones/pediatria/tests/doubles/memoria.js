@@ -5,7 +5,7 @@ const { conflict } = require('../../backend/domain/errors');
 const { ID_PACIENTE_AUTOMATICO, siguienteIdPaciente } = require('../../backend/domain/reglas');
 const clonar = x => structuredClone(x);
 
-function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], perimetroOpcional = true } = {}) {
+function crearRepositoriosMemoria({ usuarios = [], pacientes = [], medicos = [], vacunas = [], perimetroOpcional = true } = {}) {
   const P = new Map(pacientes.map(p => [p.id_paciente, clonar(p)]));
   const MED = new Map(medicos.map(m => [m.id_medico, clonar(m)]));
   const VAC = new Map(vacunas.map(v => [v.id_vacuna, clonar(v)]));
@@ -141,6 +141,11 @@ function crearRepositoriosMemoria({ pacientes = [], medicos = [], vacunas = [], 
     pacientes: repoPacientes,
     medicos: catalogo(MED, 'id_medico'),
     vacunas: catalogo(VAC, 'id_vacuna'),
+    usuarios: {
+      _lista: usuarios.map(clonar),
+      async obtenerPorUsuario(usuario) { const u = this._lista.find(x => x.usuario === usuario); return u ? clonar(u) : null; },
+      async crear(u) { this._lista.push(clonar(u)); }
+    },
     auditoria: {
       fallar: false,
       async registrar(e) { if (this.fallar) throw new Error('bitácora no disponible'); bitacora.push(clonar(e)); },

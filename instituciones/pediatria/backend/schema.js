@@ -136,13 +136,13 @@ const filtroAuditoria = z.object({
   limite: z.coerce.number().int().min(1).max(500).default(100)
 }).strict();
 
-const devLogin = z.object({
-  usuario: id.default('USUARIO-DEMO'),
-  rol: z.enum(['medico', 'secretaria', 'administrador'])
+const login = z.object({
+  usuario: z.string().trim().regex(/^[A-Za-z0-9._-]{1,80}$/, 'Usuario inválido'),
+  contrasena: z.string().min(1).max(200)
 }).strict();
 
 module.exports = {
   id, tutor, tutorActualizar, tutores, patient, patientActualizar, medico, vacuna, diagnostico,
   tratamiento, prescripcion, consulta, crecimiento, dosis, aplicar, cancelar, archivar,
-  listarPacientes, rangoFechas, filtroAuditoria, devLogin
+  listarPacientes, rangoFechas, filtroAuditoria, login
 };

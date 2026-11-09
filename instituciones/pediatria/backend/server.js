@@ -4,7 +4,7 @@ require('dotenv').config({ quiet: true });
 const { connect, client } = require('./db');
 const { crearRepositoriosMongo, asegurarIndices, exigirIndicesEsenciales } = require('./adapters/mongo');
 const { crearServicios } = require('./application');
-const { crearApp, devLoginHabilitado } = require('./app');
+const { crearApp } = require('./app');
 const { secretoValido } = require('./security');
 
 async function start() {
@@ -31,7 +31,6 @@ async function start() {
     console.log(`Centro pediátrico API: http://localhost:${port}`);
     console.log(`MongoDB conectado. Transacciones multidocumento: ${transacciones ? 'sí (replica set)' : 'no (servidor standalone; auditoría por outbox embebido)'}`);
     console.log(`Perímetro cefálico: ${perimetro_cefalico_opcional ? 'opcional (validador Fase II)' : 'obligatorio (validador instalado; ver npm run db:validadores)'}`);
-    if (devLoginHabilitado()) console.log('Inicio de sesión de desarrollo: activo solo para peticiones desde este equipo (127.0.0.1/::1).');
   });
   server.on('error', e => {
     console.error(e.code === 'EADDRINUSE' ? `El puerto ${port} ya está en uso (¿otra instancia de la API?). Cambie PORT o detenga la otra.` : e.message);

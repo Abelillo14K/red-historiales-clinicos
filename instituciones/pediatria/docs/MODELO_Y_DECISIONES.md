@@ -13,6 +13,7 @@ El centro pediátrico consulta casi siempre **un paciente completo** (datos, tut
 | `pacientes` | Principal (Fase I) | `id_paciente`, `nombres`, `apellidos`, `fecha_nacimiento`, `sexo`, `estado_historial`, `tutores[]`, `consultas[]`, `controles_crecimiento[]`, `esquema_vacunacion[]` · **Fase II:** `fecha_registro`, `registrado_por`, `ultima_actualizacion`, `fecha_archivado`, `motivo_archivado`, `archivado_por`, `bitacora_pendiente[]` (interna) |
 | `medicos` | Catálogo referenciado (Fase I) | `id_medico`, `colegiado`, `nombres`, `apellidos`, `especialidad{id_especialidad, nombre}` |
 | `vacunas` | Catálogo referenciado (Fase I) | `id_vacuna`, `nombre`, `descripcion` |
+| `usuarios` | Cuentas de acceso | `usuario`, `nombre`, `rol`, `contrasena_hash` (scrypt con sal), `activo`, `fecha_registro` |
 | `bitacora_acceso` | Auditoría (**extensión Fase II**) | `id_evento`, `id_usuario`, `rol`, `id_paciente`, `accion`, `recurso`, `referencia`, `resultado`, `fecha_hora`, `detalle` |
 
 Subdocumentos:
@@ -47,6 +48,7 @@ Todas las fechas se guardan como **BSON Date** (UTC). `fecha_nacimiento` y `fech
 | pacientes | `bitacora_pendiente.id_evento` (sparse) | Localizar eventos de auditoría pendientes |
 | medicos | `id_medico` único, `colegiado` único | Referencias y unicidad profesional |
 | vacunas | `id_vacuna` único | Referencias |
+| usuarios | `usuario` único | Inicio de sesión |
 | bitacora_acceso | `id_paciente, fecha_hora`; `fecha_hora` | Consulta de auditoría |
 | bitacora_acceso | `id_evento` único parcial (solo si es texto) | Entrega idempotente del outbox; no afecta eventos anteriores |
 
@@ -94,7 +96,7 @@ Notas:
 
 - **Atomicidad por documento:** cada caso de uso clínico se traduce en un único `updateOne` (o `insertOne`) con la condición de negocio en el filtro, así que verificación y cambio son indivisibles. Ejemplo: aplicar una dosis exige `estado: 'Pendiente'` en el filtro; con dos aplicaciones simultáneas, una responde 200 y la otra 409 (probado contra MongoDB real).
 - **Concurrencia optimista:** reemplazar tutores o un tratamiento solo procede si el valor no cambió desde la lectura. Editar datos generales compara la identidad previa; las consultas, controles y vacunas comprueban en su filtro la fecha de nacimiento vigente. Así, una modificación del nacimiento y un registro clínico simultáneos no pueden dejar fechas incompatibles, también en standalone.
-- **Auditoría sin transacciones (servidor actual, standalone):** *outbox* embebido. El evento viaja en el mismo `updateOne` que el cambio clínico (campo `bitacora_pendiente`), después se copia a `bitacora_acceso` de forma idempotente (`id_evento` único) y se retira. Si la copia falla, se reintenta al arrancar, cada 60 s y al consultar la auditoría. **Garantía:** ningún evento de una escritura confirmada se pierde ni se duplica. Las lecturas personales y clínicas (incluidos listado, panel y pendientes de vacunación) y el acceso de desarrollo requieren persistir su evento antes de responder; si la bitácora falla, responden `503 AUDITORIA_NO_DISPONIBLE` sin entregar datos ni token. Los accesos denegados siguen rechazándose aunque falle su evento.
+- **Auditoría sin transacciones (servidor actual, standalone):** *outbox* embebido. El evento viaja en el mismo `updateOne` que el cambio clínico (campo `bitacora_pendiente`), después se copia a `bitacora_acceso` de forma idempotente (`id_evento` único) y se retira. Si la copia falla, se reintenta al arrancar, cada 60 s y al consultar la auditoría. **Garantía:** ningún evento de una escritura confirmada se pierde ni se duplica. Las lecturas personales y clínicas (incluidos listado, panel y pendientes de vacunación) y el inicio de sesión requieren persistir su evento antes de responder; si la bitácora falla, responden `503 AUDITORIA_NO_DISPONIBLE` sin entregar datos ni token. Los accesos denegados siguen rechazándose aunque falle su evento.
 - **Con replica set:** `UnidadDeTrabajo` usa `session.withTransaction`: escritura clínica y bitácora se confirman o revierten juntas. Verificado con un replica set desechable; el servidor del proyecto no lo es (plan en `instituciones/pediatria/docs/OPERACION_MONGODB.md`).
 - **Integridad referencial:** MongoDB no tiene claves foráneas; los casos de uso verifican `id_medico`, `id_vacuna` e `id_consulta` antes de escribir. Los catálogos no exponen borrado, por lo que no quedan referencias colgantes.
 - **Validación en dos niveles:** Zod en la API y `$jsonSchema` en MongoDB (`instituciones/pediatria/backend/adapters/mongo/validadores.js`). Las reglas temporales, de referencias y concurrencia se refuerzan en los casos de uso y filtros de escritura. La última comprobación documentada del 24/10/2026 informa validadores de Fase II en las cuatro colecciones y 0 documentos que incumplen; el estado de cada instalación se consulta con `npm run db:validadores`.
@@ -108,7 +110,7 @@ Notas:
 | Autorización | Médico: lectura y escritura clínica. Secretaría: registro, datos generales y tutores, sin información clínica. Administrador: lectura completa, archivados, archivar, catálogos y auditoría |
 | Clasificación de la Fase I | Datos restringidos (motivo, observaciones, crecimiento, vacunas) solo para médico y administrador. **DPI del tutor** (restringido): completo para secretaría y administración (lo capturan), **enmascarado** para el médico, y la búsqueda por DPI solo para roles administrativos |
 | Auditoría | `bitacora_acceso`: lecturas, escrituras, accesos denegados e inicios de sesión de desarrollo, más trazas embebidas (`registrado_por`, `aplicado_por`, `archivado_por`, `reemplazado_por`) |
-| Acceso de desarrollo | `/auth/dev-login` solo en `development`/`test` y solo para peticiones del propio equipo (127.0.0.1/::1), según `req.ip` con `trust proxy = loopback`. El proxy de Vite usa `xfwd: true`, así que con `vite --host` un equipo remoto se sigue viendo como remoto y un `X-Forwarded-For` manipulado no lo elude (`tests/vite-proxy.test.js`) |
+| Inicio de sesión | `POST /auth/login` con contraseñas cifradas con scrypt y sal propia, comparación en tiempo constante, mismo mensaje si la cuenta no existe, máximo 20 intentos por minuto e IP, y registro de intentos correctos y fallidos |
 | Archivado | No existe ninguna ruta de borrado |
 | Base de datos | Usuario `app_pediatrica` con `readWrite` solo sobre `centro_pediatrico_db` (mínimo privilegio); credenciales solo en `.env` |
 | Entrada | Zod estricto (rechaza campos desconocidos y operadores `$`), límites de tamaño, parámetros de ruta con patrón, JSON de 100 KB como máximo |

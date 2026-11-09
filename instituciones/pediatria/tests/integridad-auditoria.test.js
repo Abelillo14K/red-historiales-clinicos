@@ -1,7 +1,7 @@
 'use strict';
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { iniciar, fixtures } = require('./helpers');
+const { iniciar, fixtures, CONTRASENA_PRUEBA } = require('./helpers');
 const { crearServicios } = require('../backend/application');
 const { crearRepositoriosMemoria } = require('./doubles/memoria');
 const { CASOS_NACIMIENTO, comprobarCarreraNacimiento } = require('./soporte/carrerasNacimiento');
@@ -105,7 +105,7 @@ describe('Lecturas auditadas y fallo temporal de bitácora', () => {
         assert.equal(r.datos.codigo, 'AUDITORIA_NO_DISPONIBLE');
         assert.deepEqual(Object.keys(r.datos).sort(), ['codigo', 'error']);
       }
-      const login = await ctx.api('POST', '/auth/dev-login', { body: { rol: 'medico' } });
+      const login = await ctx.api('POST', '/auth/login', { body: { usuario: 'usr-medico', contrasena: CONTRASENA_PRUEBA } });
       assert.equal(login.status, 503);
       assert.equal(login.datos.token, undefined);
       // La caída de auditoría tampoco convierte una denegación en acceso permitido.
@@ -128,7 +128,7 @@ describe('Índices indispensables para arrancar', () => {
 
   test('cada índice único fallido se trata como esencial, incluido el identificador del outbox', async () => {
     const r = await asegurarIndices(simular((_c, _k, o) => o.unique === true));
-    assert.equal(r.filter(x => x.esencial && !x.ok).length, 5);
+    assert.equal(r.filter(x => x.esencial && !x.ok).length, 6);
     assert.throws(() => exigirIndicesEsenciales(r), /bitacora_acceso/);
   });
 

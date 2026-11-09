@@ -32,6 +32,7 @@ const PUERTOS = {
   ],
   MedicoRepository: ['listar', 'obtener', 'crear'],
   VacunaRepository: ['listar', 'obtener', 'crear'],
+  UsuarioRepository: ['obtenerPorUsuario', 'crear'],
   AuditoriaRepository: ['registrar', 'listar'],
   // ejecutar(fn, evento): el evento de auditoría queda registrado si y solo si
   // fn confirma su escritura (transacción o outbox embebido, según el motor).
@@ -49,6 +50,7 @@ function verificarRepositorios(repos) {
   verificarPuerto('PacienteRepository', repos.pacientes);
   verificarPuerto('MedicoRepository', repos.medicos);
   verificarPuerto('VacunaRepository', repos.vacunas);
+  verificarPuerto('UsuarioRepository', repos.usuarios);
   verificarPuerto('AuditoriaRepository', repos.auditoria);
   verificarPuerto('UnidadDeTrabajo', repos.unidad);
   if (repos.capacidades !== undefined && typeof repos.capacidades !== 'function') throw new Error('capacidades debe ser una función async');

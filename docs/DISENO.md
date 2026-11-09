@@ -63,7 +63,7 @@ Los campos institucionales son propuestas visuales: cada backend deberá confirm
 
 | Pantalla | Implementación |
 |---|---|
-| Acceso | Panel navy de presentación, cuatro instituciones, formulario de acceso institucional preparado y acceso vigente por token/desarrollo |
+| Acceso | Panel navy de presentación, cuatro instituciones, formulario de acceso con usuario y contraseña |
 | Pacientes | Indicadores, búsqueda, tabla y llamada a registro; datos reales en Pediatría |
 | Registro | Secciones numeradas, navegación por secciones, resumen y clasificación; cinco secciones hospitalarias |
 | Expediente | Encabezado navy, datos clave, pestañas; signos vitales y contactos en la vista hospitalaria |
