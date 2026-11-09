@@ -91,7 +91,7 @@ Se entra con **usuario y contraseña**. Las cuentas iniciales (una por rol) se c
 ## Pruebas
 
 ```powershell
-npm test                      # plataforma (33) + Pediatría (119) + Laboratorio (58) + Odontología (31, más las del emulador si hay Java 21+)
+npm test                      # plataforma (33) + Pediatría (119) + Laboratorio (58) + Odontología (31, más las del emulador si hay Java 21+) + Hospital (18, con MySQL Server instalado)
 npm run test:e2e              # Pediatría en Edge/Chrome con MongoDB desechable (27 pasos)
 npm run test:e2e:vista-previa # vista previa de desarrollo (7 pasos)
 npm run test:todo             # todo lo anterior

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node instituciones/pediatria/backend/server.js",
     "dev": "node --watch instituciones/pediatria/backend/server.js",
-    "test": "npm run test:plataforma && npm run test:pediatria && npm run test:laboratorio && npm run test:odontologia",
+    "test": "npm run test:plataforma && npm run test:pediatria && npm run test:laboratorio && npm run test:odontologia && npm run test:hospital",
     "test:plataforma": "node --import ./tests/soporte/alias-frontend.mjs --test tests/*.test.js",
     "test:pediatria": "node --test instituciones/pediatria/tests/*.test.js",
     "test:laboratorio": "node --test instituciones/laboratorio/tests/*.test.js",
@@ -27,6 +27,7 @@
     "hospital:install": "npm --prefix instituciones/hospital/backend ci",
     "hospital:usuario": "node --env-file=.env instituciones/hospital/backend/scripts/crear-usuario.js",
     "odonto:emulador": "npx --yes firebase-tools@14 setup:emulators:firestore",
+    "test:hospital": "node --test instituciones/hospital/tests/*.test.js",
     "test:e2e": "npm run build && node instituciones/pediatria/tests/e2e/flujo-ui.e2e.js",
     "test:e2e:vista-previa": "node tests/e2e/vista-previa.e2e.js",
     "test:todo": "npm test && npm run test:e2e && npm run test:e2e:vista-previa"

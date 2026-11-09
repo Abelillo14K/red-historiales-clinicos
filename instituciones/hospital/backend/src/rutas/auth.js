@@ -1,5 +1,4 @@
-// Inicio de sesión PROPIO del Hospital (solo modo independiente / desarrollo).
-// El inicio de sesión común sigue pendiente del equipo (GUIA_EQUIPO §3.3).
+// Inicio de sesión del Hospital: lo usan el formulario común (modulo.js) y el modo independiente.
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -11,7 +10,7 @@ import { firmarToken } from '../seguridad.js';
 export const authRouter = Router();
 
 const login = z.object({ usuario: z.string().min(1).max(50), contrasena: z.string().min(1).max(200) });
-const HASH_FALSO = bcrypt.hashSync('no-existe', 10); // iguala el tiempo si el usuario no existe
+const HASH_FALSO = bcrypt.hashSync('no-existe', 12); // mismo costo que crear-usuario.js: iguala el tiempo si el usuario no existe
 
 // Valida la cuenta en MySQL y devuelve la sesión. La usan esta ruta y el inicio de sesión común (modulo.js).
 export async function autenticarCuenta(usuario, contrasena) {

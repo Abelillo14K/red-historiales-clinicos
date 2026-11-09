@@ -1,5 +1,4 @@
-// Servidor INDEPENDIENTE del Hospital (modo desarrollo). Cuando el router se registre en el
-// servidor común, este archivo deja de ser necesario.
+// Servidor INDEPENDIENTE del Hospital, solo para desarrollo. En producción se usa el servidor común (modulo.js).
 import express from 'express';
 import { config } from './config.js';
 import { manejador, noEncontrada } from './errores.js';
